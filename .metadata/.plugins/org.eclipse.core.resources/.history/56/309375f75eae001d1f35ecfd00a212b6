@@ -1,65 +1,47 @@
 #include "main.h"
-
 #define mascara 0b11
-
 TIM_HandleTypeDef htim1;
-I2C_HandleTypeDef hi2c1;
-
-enum Lecturas{
-	btn_ant = 0b01,
-	btn_pos = 0b10
-};
-
-struct Lecturas_del_puerto
-{
-	uint32_t PuertoA;
-	uint32_t AnteriorPuertoA;
-}Port;
-
 void SystemClock_Config(void);
 static void MX_GPIO_Init(void);
 static void MX_TIM1_Init(void);
-static void MX_I2C1_Init(void);
 
-//Not considering the "0" of the 2 byte register of the timer
-const uint32_t counterperiod[7] = {45000, 22500, 9000, 4500, 2250, 900, 450};
-int32_t Frequency_selector;
-
+uint32_t puertoA, det_ant, det_pos, btn_ant=0b01, btn_pos=0b10;
+int32_t i;
+uint32_t counterperiod[7] = {45000, 22500, 9000, 4500, 2250, 900, 450};
 int main(void)
 {
   HAL_Init();
   SystemClock_Config();
   MX_GPIO_Init();
-  MX_I2C1_Init();
   MX_TIM1_Init();
   HAL_TIM_PWM_Start(&htim1, TIM_CHANNEL_1);
   while (1)
   {
-	  Port.PuertoA = (GPIOA -> IDR)&mascara;
-	  if (Port.PuertoA != Port.AnteriorPuertoA)
+	  puertoA = (GPIOA -> IDR)&mascara;
+	  det_ant = puertoA;
+	  if (det_ant != det_pos)
 	  {
-		  if(Port.PuertoA == btn_pos)
-		  {
-			  Frequency_selector++;
-		  	  if(Frequency_selector>6)
-		      {
-		  		Frequency_selector=6;
-		  	  }
-		  	  TIM1 -> ARR = counterperiod[Frequency_selector]-1;
-		  	  TIM1 -> CCR1 = ((counterperiod[Frequency_selector]-1)/2)-1;//-1 by the zero of the 2 byte variable
-		  }
-		  else if (Port.PuertoA == btn_ant)
-		  {
-			  Frequency_selector--;
-		  	  if (Frequency_selector<0)
+		  if(puertoA == btn_pos)
 		  	  {
-		  		Frequency_selector=0;
+		  		  i++;
+		  		  if(i>6)
+		  		  {
+		  		  	  i=6;
+		  		  }
+		  		  TIM1 -> ARR = counterperiod[i]-1;
+		  		  TIM1 -> CCR1 = ((counterperiod[i]-1)/2)-1;
+		  	  } else if (puertoA == btn_ant)
+		  	  {
+		  		  i--;
+		  		  if (i<0)
+		  		  {
+		  			  i=0;
+		  		  }
+		  		  TIM1 -> ARR = counterperiod[i]-1;
+		  		  TIM1 -> CCR1 = ((counterperiod[i]-1)/2)-1;
 		  	  }
-		  	  TIM1 -> ARR = counterperiod[Frequency_selector]-1;
-		  	  TIM1 -> CCR1 = ((counterperiod[Frequency_selector]-1)/2)-1;//-1 by the zero of the 2 byte variable
-		  }
 	  }
-	  Port.AnteriorPuertoA = Port.PuertoA;
+	  det_pos = puertoA;
   }
 
 }
