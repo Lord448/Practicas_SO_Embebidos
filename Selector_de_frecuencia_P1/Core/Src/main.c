@@ -1,4 +1,8 @@
 #include "main.h"
+#include "ssd1306.h"
+#include "fonts.h"
+#include <stdio.h>
+#include <string.h>
 
 #define mascara 0b11
 
@@ -20,8 +24,11 @@ void SystemClock_Config(void);
 static void MX_GPIO_Init(void);
 static void MX_TIM1_Init(void);
 static void MX_I2C1_Init(void);
+void Print_Freq(char String[5], uint16_t NumChars);
 
 //Not considering the "0" of the 2 byte register of the timer
+//100Hz, 200Hz, 500Hz, 1KHz, 2KHz, 5KHz, 10KHz
+//Always @ 50% of duty cycle
 const uint32_t counterperiod[7] = {45000, 22500, 9000, 4500, 2250, 900, 450};
 int32_t Frequency_selector;
 
@@ -32,6 +39,10 @@ int main(void)
   MX_GPIO_Init();
   MX_I2C1_Init();
   MX_TIM1_Init();
+  SSD1306_Init();
+  SSD1306_GotoXY(8, 11);
+  SSD1306_Puts("Frecuencia", &Font_11x18, 1);
+  SSD1306_UpdateScreen();
   HAL_TIM_PWM_Start(&htim1, TIM_CHANNEL_1);
   while (1)
   {
@@ -58,10 +69,47 @@ int main(void)
 		  	  TIM1 -> ARR = counterperiod[Frequency_selector]-1;
 		  	  TIM1 -> CCR1 = ((counterperiod[Frequency_selector]-1)/2)-1;//-1 by the zero of the 2 byte variable
 		  }
+		  //Printing on the LCD
+		  switch(Frequency_selector)
+		  {
+		  	  //All the prints are centered
+		  	  case 0:
+		  		  Print_Freq("100Hz", 5);
+		  	  break;
+		  	  case 1:
+		  		  Print_Freq("200Hz", 5);
+		  	  break;
+		  	  case 2:
+		  		  Print_Freq("500Hz", 5);
+		  	  break;
+		  	  case 3:
+		  		  Print_Freq("1KHz", 4);
+		  	  break;
+		  	  case 4:
+			  	  Print_Freq("2KHz", 4);
+		  	  break;
+		  	  case 5:
+			  	  Print_Freq("5KHz", 4);
+		  	  break;
+		  	  case 6:
+			  	  Print_Freq("10KHz", 5);
+		  	  break;
+		  }
 	  }
 	  Port.AnteriorPuertoA = Port.PuertoA;
   }
+}
 
+void Print_Freq(char String[5], uint16_t NumChars)
+{
+	SSD1306_GotoXY(36, 33);
+	SSD1306_Puts("     ", &Font_11x18, 1); //Erasing the last print
+	if(NumChars == 5) //For centering the chars
+		SSD1306_GotoXY(36, 33);
+	else if(NumChars == 4)
+		SSD1306_GotoXY(41, 33);
+	SSD1306_Puts(String, &Font_11x18, 1);
+	SSD1306_UpdateScreen();
 }
 
 /**
