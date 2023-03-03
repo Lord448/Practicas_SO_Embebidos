@@ -33,7 +33,7 @@
 		<link>
 			<name>OLED</name>
 			<type>2</type>
-			<location>/home/lord448/Escritorio/Libraries/STM32/OLED</location>
+			<location>/home/lord448/Escritorio/STM32 Workspaces/Practicas_SO_Embebidos/OLED</location>
 		</link>
 	</linkedResources>
 </projectDescription>

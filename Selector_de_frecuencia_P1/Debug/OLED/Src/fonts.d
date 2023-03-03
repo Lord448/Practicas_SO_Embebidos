@@ -1,6 +1,6 @@
 OLED/Src/fonts.o: \
- /home/lord448/Escritorio/Libraries/STM32/OLED/Src/fonts.c \
- /home/lord448/Escritorio/Libraries/STM32/OLED/Inc/fonts.h \
+ /home/lord448/Escritorio/STM32\ Workspaces/Practicas_SO_Embebidos/OLED/Src/fonts.c \
+ /home/lord448/Escritorio/STM32\ Workspaces/Practicas_SO_Embebidos/OLED/Inc/fonts.h \
  ../Drivers/STM32F1xx_HAL_Driver/Inc/stm32f1xx_hal.h \
  ../Core/Inc/stm32f1xx_hal_conf.h \
  ../Drivers/STM32F1xx_HAL_Driver/Inc/stm32f1xx_hal_rcc.h \
@@ -26,7 +26,7 @@ OLED/Src/fonts.o: \
  ../Drivers/STM32F1xx_HAL_Driver/Inc/stm32f1xx_hal_pwr.h \
  ../Drivers/STM32F1xx_HAL_Driver/Inc/stm32f1xx_hal_tim.h \
  ../Drivers/STM32F1xx_HAL_Driver/Inc/stm32f1xx_hal_tim_ex.h
-/home/lord448/Escritorio/Libraries/STM32/OLED/Inc/fonts.h:
+/home/lord448/Escritorio/STM32\ Workspaces/Practicas_SO_Embebidos/OLED/Inc/fonts.h:
 ../Drivers/STM32F1xx_HAL_Driver/Inc/stm32f1xx_hal.h:
 ../Core/Inc/stm32f1xx_hal_conf.h:
 ../Drivers/STM32F1xx_HAL_Driver/Inc/stm32f1xx_hal_rcc.h:

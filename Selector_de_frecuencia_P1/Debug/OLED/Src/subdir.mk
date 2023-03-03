@@ -5,8 +5,8 @@
 
 # Add inputs and outputs from these tool invocations to the build variables 
 C_SRCS += \
-/home/lord448/Escritorio/Libraries/STM32/OLED/Src/fonts.c \
-/home/lord448/Escritorio/Libraries/STM32/OLED/Src/ssd1306.c 
+/home/lord448/Escritorio/STM32\ Workspaces/Practicas_SO_Embebidos/OLED/Src/fonts.c \
+/home/lord448/Escritorio/STM32\ Workspaces/Practicas_SO_Embebidos/OLED/Src/ssd1306.c 
 
 OBJS += \
 ./OLED/Src/fonts.o \
@@ -18,10 +18,10 @@ C_DEPS += \
 
 
 # Each subdirectory must supply rules for building sources it contributes
-OLED/Src/fonts.o: /home/lord448/Escritorio/Libraries/STM32/OLED/Src/fonts.c OLED/Src/subdir.mk
-	arm-none-eabi-gcc "$<" -mcpu=cortex-m3 -std=gnu11 -g3 -DDEBUG -DUSE_HAL_DRIVER -DSTM32F103xB -c -I../Core/Inc -I../Drivers/STM32F1xx_HAL_Driver/Inc/Legacy -I../Drivers/STM32F1xx_HAL_Driver/Inc -I../Drivers/CMSIS/Device/ST/STM32F1xx/Include -I../Drivers/CMSIS/Include -I/home/lord448/Escritorio/Libraries/STM32/OLED/Inc -O0 -ffunction-sections -fdata-sections -Wall -fstack-usage -MMD -MP -MF"$(@:%.o=%.d)" -MT"$@" --specs=nano.specs -mfloat-abi=soft -mthumb -o "$@"
-OLED/Src/ssd1306.o: /home/lord448/Escritorio/Libraries/STM32/OLED/Src/ssd1306.c OLED/Src/subdir.mk
-	arm-none-eabi-gcc "$<" -mcpu=cortex-m3 -std=gnu11 -g3 -DDEBUG -DUSE_HAL_DRIVER -DSTM32F103xB -c -I../Core/Inc -I../Drivers/STM32F1xx_HAL_Driver/Inc/Legacy -I../Drivers/STM32F1xx_HAL_Driver/Inc -I../Drivers/CMSIS/Device/ST/STM32F1xx/Include -I../Drivers/CMSIS/Include -I/home/lord448/Escritorio/Libraries/STM32/OLED/Inc -O0 -ffunction-sections -fdata-sections -Wall -fstack-usage -MMD -MP -MF"$(@:%.o=%.d)" -MT"$@" --specs=nano.specs -mfloat-abi=soft -mthumb -o "$@"
+OLED/Src/fonts.o: /home/lord448/Escritorio/STM32\ Workspaces/Practicas_SO_Embebidos/OLED/Src/fonts.c OLED/Src/subdir.mk
+	arm-none-eabi-gcc "$<" -mcpu=cortex-m3 -std=gnu11 -g3 -DDEBUG -DUSE_HAL_DRIVER -DSTM32F103xB -c -I../Core/Inc -I../Drivers/STM32F1xx_HAL_Driver/Inc/Legacy -I../Drivers/STM32F1xx_HAL_Driver/Inc -I../Drivers/CMSIS/Device/ST/STM32F1xx/Include -I../Drivers/CMSIS/Include -I"/home/lord448/Escritorio/STM32 Workspaces/Practicas_SO_Embebidos/OLED/Inc" -O0 -ffunction-sections -fdata-sections -Wall -fstack-usage -MMD -MP -MF"$(@:%.o=%.d)" -MT"$@" --specs=nano.specs -mfloat-abi=soft -mthumb -o "$@"
+OLED/Src/ssd1306.o: /home/lord448/Escritorio/STM32\ Workspaces/Practicas_SO_Embebidos/OLED/Src/ssd1306.c OLED/Src/subdir.mk
+	arm-none-eabi-gcc "$<" -mcpu=cortex-m3 -std=gnu11 -g3 -DDEBUG -DUSE_HAL_DRIVER -DSTM32F103xB -c -I../Core/Inc -I../Drivers/STM32F1xx_HAL_Driver/Inc/Legacy -I../Drivers/STM32F1xx_HAL_Driver/Inc -I../Drivers/CMSIS/Device/ST/STM32F1xx/Include -I../Drivers/CMSIS/Include -I"/home/lord448/Escritorio/STM32 Workspaces/Practicas_SO_Embebidos/OLED/Inc" -O0 -ffunction-sections -fdata-sections -Wall -fstack-usage -MMD -MP -MF"$(@:%.o=%.d)" -MT"$@" --specs=nano.specs -mfloat-abi=soft -mthumb -o "$@"
 
 clean: clean-OLED-2f-Src
 

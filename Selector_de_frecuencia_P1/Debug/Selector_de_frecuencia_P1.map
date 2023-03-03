@@ -3383,23 +3383,23 @@ LOAD /opt/st/stm32cubeide_1.11.2/plugins/com.st.stm32cube.ide.mcu.externaltools.
  .debug_macro   0x000000000001776f      0x27b ./OLED/Src/fonts.o
  .debug_macro   0x00000000000179ea      0x306 ./OLED/Src/ssd1306.o
 
-.debug_line     0x0000000000000000     0xe7c2
- .debug_line    0x0000000000000000      0xb12 ./Core/Src/main.o
- .debug_line    0x0000000000000b12      0x704 ./Core/Src/stm32f1xx_hal_msp.o
- .debug_line    0x0000000000001216      0x717 ./Core/Src/stm32f1xx_it.o
- .debug_line    0x000000000000192d      0x6d3 ./Core/Src/system_stm32f1xx.o
- .debug_line    0x0000000000002000       0x87 ./Core/Startup/startup_stm32f103c8tx.o
- .debug_line    0x0000000000002087      0x900 ./Drivers/STM32F1xx_HAL_Driver/Src/stm32f1xx_hal.o
- .debug_line    0x0000000000002987      0xae8 ./Drivers/STM32F1xx_HAL_Driver/Src/stm32f1xx_hal_cortex.o
- .debug_line    0x000000000000346f      0x997 ./Drivers/STM32F1xx_HAL_Driver/Src/stm32f1xx_hal_gpio.o
- .debug_line    0x0000000000003e06     0x39ea ./Drivers/STM32F1xx_HAL_Driver/Src/stm32f1xx_hal_i2c.o
- .debug_line    0x00000000000077f0      0xd0e ./Drivers/STM32F1xx_HAL_Driver/Src/stm32f1xx_hal_rcc.o
- .debug_line    0x00000000000084fe     0x32b6 ./Drivers/STM32F1xx_HAL_Driver/Src/stm32f1xx_hal_tim.o
- .debug_line    0x000000000000b7b4     0x1828 ./Drivers/STM32F1xx_HAL_Driver/Src/stm32f1xx_hal_tim_ex.o
- .debug_line    0x000000000000cfdc      0x809 ./OLED/Src/fonts.o
- .debug_line    0x000000000000d7e5      0xfdd ./OLED/Src/ssd1306.o
+.debug_line     0x0000000000000000     0xe83a
+ .debug_line    0x0000000000000000      0xb2a ./Core/Src/main.o
+ .debug_line    0x0000000000000b2a      0x704 ./Core/Src/stm32f1xx_hal_msp.o
+ .debug_line    0x000000000000122e      0x717 ./Core/Src/stm32f1xx_it.o
+ .debug_line    0x0000000000001945      0x6d3 ./Core/Src/system_stm32f1xx.o
+ .debug_line    0x0000000000002018       0x87 ./Core/Startup/startup_stm32f103c8tx.o
+ .debug_line    0x000000000000209f      0x900 ./Drivers/STM32F1xx_HAL_Driver/Src/stm32f1xx_hal.o
+ .debug_line    0x000000000000299f      0xae8 ./Drivers/STM32F1xx_HAL_Driver/Src/stm32f1xx_hal_cortex.o
+ .debug_line    0x0000000000003487      0x997 ./Drivers/STM32F1xx_HAL_Driver/Src/stm32f1xx_hal_gpio.o
+ .debug_line    0x0000000000003e1e     0x39ea ./Drivers/STM32F1xx_HAL_Driver/Src/stm32f1xx_hal_i2c.o
+ .debug_line    0x0000000000007808      0xd0e ./Drivers/STM32F1xx_HAL_Driver/Src/stm32f1xx_hal_rcc.o
+ .debug_line    0x0000000000008516     0x32b6 ./Drivers/STM32F1xx_HAL_Driver/Src/stm32f1xx_hal_tim.o
+ .debug_line    0x000000000000b7cc     0x1828 ./Drivers/STM32F1xx_HAL_Driver/Src/stm32f1xx_hal_tim_ex.o
+ .debug_line    0x000000000000cff4      0x839 ./OLED/Src/fonts.o
+ .debug_line    0x000000000000d82d     0x100d ./OLED/Src/ssd1306.o
 
-.debug_str      0x0000000000000000    0x8aa0d
+.debug_str      0x0000000000000000    0x8aa3d
  .debug_str     0x0000000000000000    0x87794 ./Core/Src/main.o
                                       0x87bf7 (size before relaxing)
  .debug_str     0x0000000000087794       0xcc ./Core/Src/stm32f1xx_hal_msp.o
@@ -3424,10 +3424,10 @@ LOAD /opt/st/stm32cubeide_1.11.2/plugins/com.st.stm32cube.ide.mcu.externaltools.
                                       0x8442a (size before relaxing)
  .debug_str     0x000000000008a0a9      0x3e1 ./Drivers/STM32F1xx_HAL_Driver/Src/stm32f1xx_hal_tim_ex.o
                                       0x83c46 (size before relaxing)
- .debug_str     0x000000000008a48a       0xa4 ./OLED/Src/fonts.o
-                                      0x85e5a (size before relaxing)
- .debug_str     0x000000000008a52e      0x4df ./OLED/Src/ssd1306.o
-                                      0x86927 (size before relaxing)
+ .debug_str     0x000000000008a48a       0xbc ./OLED/Src/fonts.o
+                                      0x85e72 (size before relaxing)
+ .debug_str     0x000000000008a546      0x4f7 ./OLED/Src/ssd1306.o
+                                      0x8693f (size before relaxing)
 
 .comment        0x0000000000000000       0x50
  .comment       0x0000000000000000       0x50 ./Core/Src/main.o
