@@ -5,7 +5,7 @@
 //It configures the resistor mode: PULL_UP, PULL_DOWN
 #define PULL_UP
 //It configures the number of samples in the debouncing task
-#define SAMPLES 3
+#define SAMPLES 30
 //It establish the maximum counts of the capture compare register
 #define MaximumCCR 7199
 
