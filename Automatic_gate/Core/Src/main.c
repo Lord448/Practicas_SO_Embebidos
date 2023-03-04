@@ -15,6 +15,13 @@ typedef enum bool
 	true
 }bool;
 
+enum motor
+{
+	M_Open,
+	M_Close,
+	M_Stop
+}Motor;
+
 TIM_HandleTypeDef htim1; //Paused Cycle handler @ 1ms
 TIM_HandleTypeDef htim2; //Motor PWM handler @ 10KHz, MaximumCCR = 7199
 
@@ -24,6 +31,7 @@ static void MX_TIM1_Init(void);
 static void MX_TIM2_Init(void);
 void Task_Gate(void);
 void Task_ReadPins(void);
+void Task_WriteMotor(void);
 uint16_t Task_Debounce(GPIO_TypeDef *GPIOx, uint16_t GPIO_Pin);
 
 #ifdef USER_DEBUG
@@ -31,6 +39,7 @@ volatile bool PauseFlag = true;
 #endif
 
 bool Arrive_Open, Arrive_Close;
+bool B_Open, B_Close;
 
 int main(void)
 {
@@ -44,6 +53,7 @@ int main(void)
   {
 	  Task_ReadPins();
 	  Task_Gate();
+	  Task_WriteMotor();
 #ifdef USER_DEBUG
 	  while(PauseFlag);
 	  PauseFlag = true;
@@ -65,37 +75,83 @@ void Task_Gate(void)
 		Close_Stage
 	}static Stages = No_Motion_Stage;
 
-	static bool M_Open, M_Close;
-
 	switch(Stages)
 	{
 		case No_Motion_Stage:
+			Motor = M_Stop;
+			if(B_Open && !Arrive_Open){
+				Stages = Open_Stage;
+			}
+			else if	(B_Close && !Arrive_Close){
+				Stages = Close_Stage;
+			}
 		break;
 		case Open_Stage:
+			Motor = M_Open;
+			if(Arrive_Open){
+				Stages = No_Motion_Stage;
+			}
 		break;
 		case Close_Stage:
+			Motor = M_Close;
+			if(Arrive_Close){
+				Stages = No_Motion_Stage;
+			}
 		break;
 	}
 }
 
 void Task_ReadPins(void)
 {
-	  if(Task_Debounce(LimitSwitch_Close_GPIO_Port, LimitSwitch_Close_Pin) == true)
-	  {
-		  Arrive_Close = true;
-	  }
-	  else
-	  {
-		  Arrive_Close = false;
-	  }
-	  if(Task_Debounce(LimitSwitch_Open_GPIO_Port, LimitSwitch_Open_Pin) == true)
-	  {
-		  Arrive_Open = true;
-	  }
-	  else
-	  {
-		  Arrive_Close = false;
-	  }
+	//Limit Switch Close Pin
+	if(HAL_GPIO_ReadPin(LimitSwitch_Close_GPIO_Port, LimitSwitch_Close_Pin) == 1)
+	{
+		Arrive_Close = true;
+	}
+	else
+	{
+		Arrive_Close = false;
+	}
+	//Limit Switch Open Pin
+	if(HAL_GPIO_ReadPin(LimitSwitch_Close_GPIO_Port, LimitSwitch_Close_Pin) == 1)
+	{
+		Arrive_Open = true;
+	}
+	else
+	{
+		Arrive_Open = false;
+	}
+	//Debouncing the Close Pin
+	if(Task_Debounce(LimitSwitch_Close_GPIO_Port, LimitSwitch_Close_Pin) == true)
+	{
+		B_Close = true;
+	}
+	else
+	{
+	   B_Close = false;
+	}
+	//Debouncing the Open Pin
+	if(Task_Debounce(LimitSwitch_Open_GPIO_Port, LimitSwitch_Open_Pin) == true)
+	{
+	   B_Open = true;
+	}
+	else
+	{
+	   B_Open = false;
+	}
+}
+
+void Task_WriteMotor(void)
+{
+	switch(Motor)
+	{
+		case M_Open:
+		break;
+		case M_Close:
+		break;
+		case M_Stop:
+		break;
+	}
 }
 
 /**
@@ -322,11 +378,22 @@ static void MX_GPIO_Init(void)
   GPIO_InitTypeDef GPIO_InitStruct = {0};
 
   /* GPIO Ports Clock Enable */
+  __HAL_RCC_GPIOC_CLK_ENABLE();
   __HAL_RCC_GPIOD_CLK_ENABLE();
   __HAL_RCC_GPIOA_CLK_ENABLE();
 
   /*Configure GPIO pin Output Level */
+  HAL_GPIO_WritePin(GPIOC, GPIO_PIN_13, GPIO_PIN_RESET);
+
+  /*Configure GPIO pin Output Level */
   HAL_GPIO_WritePin(GPIOA, L293D_Input1_Pin|L293D_Input2_Pin|LimitSwitch_Open_Pin, GPIO_PIN_RESET);
+
+  /*Configure GPIO pin : PC13 */
+  GPIO_InitStruct.Pin = GPIO_PIN_13;
+  GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
+  GPIO_InitStruct.Pull = GPIO_NOPULL;
+  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
+  HAL_GPIO_Init(GPIOC, &GPIO_InitStruct);
 
   /*Configure GPIO pins : L293D_Input1_Pin L293D_Input2_Pin LimitSwitch_Open_Pin */
   GPIO_InitStruct.Pin = L293D_Input1_Pin|L293D_Input2_Pin|LimitSwitch_Open_Pin;
@@ -335,11 +402,11 @@ static void MX_GPIO_Init(void)
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
   HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
 
-  /*Configure GPIO pin : LimitSwitch_Close_Pin */
-  GPIO_InitStruct.Pin = LimitSwitch_Close_Pin;
+  /*Configure GPIO pins : LimitSwitch_Close_Pin Button_Close_Pin Button_Open_Pin */
+  GPIO_InitStruct.Pin = LimitSwitch_Close_Pin|Button_Close_Pin|Button_Open_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
-  HAL_GPIO_Init(LimitSwitch_Close_GPIO_Port, &GPIO_InitStruct);
+  HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
 
 }
 

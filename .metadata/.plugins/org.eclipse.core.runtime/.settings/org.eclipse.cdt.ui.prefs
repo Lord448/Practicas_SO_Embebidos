@@ -22,6 +22,7 @@ content_assist_parameters_background=25,29,31
 content_assist_parameters_foreground=208,208,208
 content_assist_proposals_background=25,29,31
 content_assist_proposals_foreground=208,208,208
+do_not_ask_to_install_user_dictionary=true
 eclipse.preferences.version=1
 inactiveCodeColor=65,65,4
 org.eclipse.cdt.internal.ui.text.doctools.multi=204,223,50

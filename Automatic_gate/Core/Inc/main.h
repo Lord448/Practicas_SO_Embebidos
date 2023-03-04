@@ -69,6 +69,10 @@ void Error_Handler(void);
 #define LimitSwitch_Close_GPIO_Port GPIOA
 #define LimitSwitch_Open_Pin GPIO_PIN_4
 #define LimitSwitch_Open_GPIO_Port GPIOA
+#define Button_Close_Pin GPIO_PIN_5
+#define Button_Close_GPIO_Port GPIOA
+#define Button_Open_Pin GPIO_PIN_6
+#define Button_Open_GPIO_Port GPIOA
 
 /* USER CODE BEGIN Private defines */
 
