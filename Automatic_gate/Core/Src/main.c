@@ -1,13 +1,12 @@
 #include "main.h"
 
-//It doesn't send to sleep the MCU
-#define USER_DEBUG
-//It configures the resistor mode: PULL_UP, PULL_DOWN
-#define PULL_UP
-//It configures the number of samples in the debouncing task
-#define SAMPLES 30
-//It establish the maximum counts of the capture compare register
-#define MaximumCCR 7199
+#define USER_DEBUG //It doesn't send to sleep the MCU
+#define PULL_UP //It configures the resistor mode: PULL_UP, PULL_DOWN
+#define SAMPLES 30 //It configures the number of samples in the debouncing task
+#define MotorVelocity 20 //Percentage value of the power of the motor
+#define MaximumCCR 7199 //It establish the maximum counts of the capture compare register
+#define WritePortAMask (uint32_t) 0x03 //Mask for the CCW and CW direction write
+#define ReadPortAMask (uint32_t) 0x0F //Mask for the read in the port A inputs
 
 typedef enum bool
 {
@@ -15,15 +14,15 @@ typedef enum bool
 	true
 }bool;
 
-enum motor
+enum Motor
 {
 	M_Open,
 	M_Close,
 	M_Stop
 }Motor;
 
-TIM_HandleTypeDef htim1; //Paused Cycle handler @ 1ms
-TIM_HandleTypeDef htim2; //Motor PWM handler @ 10KHz, MaximumCCR = 7199
+TIM_HandleTypeDef htim1; //Paused Cycle handler @ 1ms, Using ISR, No channels
+TIM_HandleTypeDef htim2; //Motor PWM handler @ 10KHz, MaximumCCR = 7199, Channel 1, No ISR
 
 void SystemClock_Config(void);
 static void MX_GPIO_Init(void);
@@ -38,6 +37,8 @@ uint16_t Task_Debounce(GPIO_TypeDef *GPIOx, uint16_t GPIO_Pin);
 volatile bool PauseFlag = true;
 #endif
 
+const uint32_t CCW = 0b01;
+const uint32_t CW = 0b10;
 bool Arrive_Open, Arrive_Close;
 bool B_Open, B_Close;
 
@@ -48,6 +49,7 @@ int main(void)
   MX_GPIO_Init();
   MX_TIM1_Init();
   MX_TIM2_Init();
+  TIM2 -> CCR1 = (uint32_t) ((MotorVelocity * MaximumCCR) / 100); //Setting the velocity of the motor
   HAL_TIM_Base_Start_IT(&htim1);
   while (1)
   {
@@ -103,42 +105,32 @@ void Task_Gate(void)
 
 void Task_ReadPins(void)
 {
-	//Limit Switch Close Pin
-	if(HAL_GPIO_ReadPin(LimitSwitch_Close_GPIO_Port, LimitSwitch_Close_Pin) == 1)
+	enum Reading
 	{
+		LimitClose = 0b1110,
+		LimitOpen = 0b1101,
+		ButtonClose = 0b1011,
+		ButtonOpen = 0b0111
+	}ReadPortA;
+
+	ReadPortA = ((GPIOA -> IDR)>>3)&ReadPortAMask;
+
+	if(ReadPortA == LimitClose)
 		Arrive_Close = true;
-	}
 	else
-	{
 		Arrive_Close = false;
-	}
-	//Limit Switch Open Pin
-	if(HAL_GPIO_ReadPin(LimitSwitch_Close_GPIO_Port, LimitSwitch_Close_Pin) == 1)
-	{
+	if(ReadPortA == LimitOpen)
 		Arrive_Open = true;
-	}
 	else
-	{
-		Arrive_Open = false;
-	}
-	//Debouncing the Close Pin
-	if(Task_Debounce(LimitSwitch_Close_GPIO_Port, LimitSwitch_Close_Pin) == true)
-	{
+		Arrive_Open = true;
+	if(ReadPortA == ButtonClose)
 		B_Close = true;
-	}
 	else
-	{
-	   B_Close = false;
-	}
-	//Debouncing the Open Pin
-	if(Task_Debounce(LimitSwitch_Open_GPIO_Port, LimitSwitch_Open_Pin) == true)
-	{
-	   B_Open = true;
-	}
+		B_Close = false;
+	if(ReadPortA == ButtonOpen)
+		B_Open = true;
 	else
-	{
-	   B_Open = false;
-	}
+		B_Open = false;
 }
 
 void Task_WriteMotor(void)
@@ -146,10 +138,15 @@ void Task_WriteMotor(void)
 	switch(Motor)
 	{
 		case M_Open:
+			GPIOA -> ODR = (CCW<<1)&WritePortAMask; //Writing CCW direction to the L293D
+			HAL_TIM_PWM_Start(&htim2, TIM_CHANNEL_1);
 		break;
 		case M_Close:
+			GPIOA -> ODR = (CW<<1)&WritePortAMask; //Writing CW direction to the L293D
+			HAL_TIM_PWM_Start(&htim2, TIM_CHANNEL_1);
 		break;
 		case M_Stop:
+			HAL_TIM_PWM_Stop(&htim2, TIM_CHANNEL_1);
 		break;
 	}
 }
@@ -214,10 +211,6 @@ uint16_t Task_Debounce(GPIO_TypeDef *GPIOx, uint16_t GPIO_Pin){
 	}
 	return 0;
 }
-
-//Generic functions
-	//Put here your functions that are not tasks
-//
 
 void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
 {
@@ -386,7 +379,7 @@ static void MX_GPIO_Init(void)
   HAL_GPIO_WritePin(GPIOC, GPIO_PIN_13, GPIO_PIN_RESET);
 
   /*Configure GPIO pin Output Level */
-  HAL_GPIO_WritePin(GPIOA, L293D_Input1_Pin|L293D_Input2_Pin|LimitSwitch_Open_Pin, GPIO_PIN_RESET);
+  HAL_GPIO_WritePin(GPIOA, L293D_Input1_Pin|L293D_Input2_Pin, GPIO_PIN_RESET);
 
   /*Configure GPIO pin : PC13 */
   GPIO_InitStruct.Pin = GPIO_PIN_13;
@@ -395,15 +388,15 @@ static void MX_GPIO_Init(void)
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
   HAL_GPIO_Init(GPIOC, &GPIO_InitStruct);
 
-  /*Configure GPIO pins : L293D_Input1_Pin L293D_Input2_Pin LimitSwitch_Open_Pin */
-  GPIO_InitStruct.Pin = L293D_Input1_Pin|L293D_Input2_Pin|LimitSwitch_Open_Pin;
+  /*Configure GPIO pins : L293D_Input1_Pin L293D_Input2_Pin */
+  GPIO_InitStruct.Pin = L293D_Input1_Pin|L293D_Input2_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
   HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
 
-  /*Configure GPIO pins : LimitSwitch_Close_Pin Button_Close_Pin Button_Open_Pin */
-  GPIO_InitStruct.Pin = LimitSwitch_Close_Pin|Button_Close_Pin|Button_Open_Pin;
+  /*Configure GPIO pins : LimitSwitch_Close_Pin LimitSwitch_Open_Pin Button_Close_Pin Button_Open_Pin */
+  GPIO_InitStruct.Pin = LimitSwitch_Close_Pin|LimitSwitch_Open_Pin|Button_Close_Pin|Button_Open_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
