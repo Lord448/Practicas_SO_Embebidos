@@ -1,8 +1,8 @@
 #include "main.h"
 
-#define USER_DEBUG //It doesn't send to sleep the MCU
+#define USER_DEBUG //It doesn't send the MCU to sleep
 #define PULL_UP //It configures the resistor mode: PULL_UP, PULL_DOWN, BOTH_EDGES
-#define SAMPLES 30 //It configures the number of samples in the debouncing task
+#define SAMPLES 35 //It configures the number of samples in the debouncing task
 #define MotorVelocity 20 //Percentage value of the power of the motor
 #define MaximumCCR 7199 //It establish the maximum counts of the capture compare register
 #define FirstTwoPinsMask (uint32_t) 0x03 //Mask for reading two pins
@@ -36,8 +36,8 @@ uint16_t Task_Debounce(GPIO_TypeDef *GPIOx, uint16_t GPIO_Pin);
 volatile bool PauseFlag = true;
 #endif
 
-const uint32_t CCW = 0b01;
-const uint32_t CW = 0b10;
+const uint32_t CCW = 0b01; //Counter Clockwise
+const uint32_t CW = 0b10; //Clock Wise
 bool Arrive_Open, Arrive_Close;
 bool B_Open, B_Close;
 
@@ -106,10 +106,8 @@ void Task_ReadPins(void)
 {
 	enum Reading
 	{
-		LimitClose = 0b1110,
-		LimitOpen = 0b1101,
-		ButtonClose = 0b1011,
-		ButtonOpen = 0b0111
+		LimitClose = 0b10,
+		LimitOpen = 0b01
 	}ReadPortA;
 
 	ReadPortA = ((GPIOA -> IDR)>>3)&FirstTwoPinsMask;
@@ -122,6 +120,7 @@ void Task_ReadPins(void)
 		Arrive_Open = true;
 	else
 		Arrive_Open = true;
+
 	if(Task_Debounce(Button_Close_GPIO_Port, Button_Close_Pin) == 1)
 		B_Close = true;
 	else
@@ -219,7 +218,9 @@ uint16_t Task_Debounce(GPIO_TypeDef *GPIOx, uint16_t GPIO_Pin){
 
 void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
 {
+#ifdef USER_DEBUG
 	PauseFlag = false;
+#endif
 }
 
 /**
@@ -353,7 +354,7 @@ static void MX_TIM2_Init(void)
   }
   sConfigOC.OCMode = TIM_OCMODE_PWM1;
   sConfigOC.Pulse = 0;
-  sConfigOC.OCPolarity = TIM_OCPOLARITY_HIGH;
+  sConfigOC.OCPolarity = TIM_OCPOLARITY_LOW;
   sConfigOC.OCFastMode = TIM_OCFAST_DISABLE;
   if (HAL_TIM_PWM_ConfigChannel(&htim2, &sConfigOC, TIM_CHANNEL_1) != HAL_OK)
   {
