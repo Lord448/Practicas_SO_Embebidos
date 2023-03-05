@@ -1,12 +1,11 @@
 #include "main.h"
 
 #define USER_DEBUG //It doesn't send to sleep the MCU
-#define PULL_UP //It configures the resistor mode: PULL_UP, PULL_DOWN
+#define PULL_UP //It configures the resistor mode: PULL_UP, PULL_DOWN, BOTH_EDGES
 #define SAMPLES 30 //It configures the number of samples in the debouncing task
 #define MotorVelocity 20 //Percentage value of the power of the motor
 #define MaximumCCR 7199 //It establish the maximum counts of the capture compare register
-#define WritePortAMask (uint32_t) 0x03 //Mask for the CCW and CW direction write
-#define ReadPortAMask (uint32_t) 0x0F //Mask for the read in the port A inputs
+#define FirstTwoPinsMask (uint32_t) 0x03 //Mask for reading two pins
 
 typedef enum bool
 {
@@ -113,7 +112,7 @@ void Task_ReadPins(void)
 		ButtonOpen = 0b0111
 	}ReadPortA;
 
-	ReadPortA = ((GPIOA -> IDR)>>3)&ReadPortAMask;
+	ReadPortA = ((GPIOA -> IDR)>>3)&FirstTwoPinsMask;
 
 	if(ReadPortA == LimitClose)
 		Arrive_Close = true;
@@ -123,11 +122,11 @@ void Task_ReadPins(void)
 		Arrive_Open = true;
 	else
 		Arrive_Open = true;
-	if(ReadPortA == ButtonClose)
+	if(Task_Debounce(Button_Close_GPIO_Port, Button_Close_Pin) == 1)
 		B_Close = true;
 	else
 		B_Close = false;
-	if(ReadPortA == ButtonOpen)
+	if(Task_Debounce(Button_Open_GPIO_Port, Button_Open_Pin) == 1)
 		B_Open = true;
 	else
 		B_Open = false;
@@ -138,11 +137,11 @@ void Task_WriteMotor(void)
 	switch(Motor)
 	{
 		case M_Open:
-			GPIOA -> ODR = (CCW<<1)&WritePortAMask; //Writing CCW direction to the L293D
+			GPIOA -> ODR = (CCW<<1)&FirstTwoPinsMask; //Writing CCW direction to the L293D
 			HAL_TIM_PWM_Start(&htim2, TIM_CHANNEL_1);
 		break;
 		case M_Close:
-			GPIOA -> ODR = (CW<<1)&WritePortAMask; //Writing CW direction to the L293D
+			GPIOA -> ODR = (CW<<1)&FirstTwoPinsMask; //Writing CW direction to the L293D
 			HAL_TIM_PWM_Start(&htim2, TIM_CHANNEL_1);
 		break;
 		case M_Stop:
@@ -186,8 +185,10 @@ uint16_t Task_Debounce(GPIO_TypeDef *GPIOx, uint16_t GPIO_Pin){
 			if(Highs == SAMPLES)
 			{
 				Stages = WaitingLow;
-#ifdef PULL_UP
+#if defined(PULL_UP) || defined(BOTH_EDGES)
 				return 1;
+#else
+				return 0;
 #endif
 			}
 			else
@@ -199,8 +200,10 @@ uint16_t Task_Debounce(GPIO_TypeDef *GPIOx, uint16_t GPIO_Pin){
 			if(Lows == SAMPLES)
 			{
 				Stages = WaitingHigh;
-#ifdef PULL_DOWN
+#if defined(PULL_DOWN) || defined(BOTH_EDGES)
 				return 1;
+#else
+				return 0;
 #endif
 			}
 			else
@@ -208,8 +211,10 @@ uint16_t Task_Debounce(GPIO_TypeDef *GPIOx, uint16_t GPIO_Pin){
 				return 0;
 			}
 		break;
+		default:
+			return 0;
+		break;
 	}
-	return 0;
 }
 
 void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
