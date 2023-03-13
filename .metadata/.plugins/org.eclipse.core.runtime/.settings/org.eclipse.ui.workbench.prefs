@@ -11,6 +11,7 @@ HYPERLINK_COLOR=111,197,238
 INCOMING_COLOR=31,179,235
 OUTGOING_COLOR=235,237,239
 RESOLVED_COLOR=104,203,16
+UIActivities.org.eclipse.cdt.debug.dsfgdbActivity=true
 content_assist_parameters_background=46,52,56
 content_assist_parameters_foreground=233,235,237
 content_assist_proposals_background=46,52,56

@@ -2,16 +2,23 @@
 
 #define USER_DEBUG //It doesn't send the MCU to sleep
 #define PULL_UP //It configures the resistor mode: PULL_UP, PULL_DOWN, BOTH_EDGES
-#define SAMPLES 35 //It configures the number of samples in the debouncing task
+#define SAMPLES 5 //It configures the number of samples in the debouncing task
 #define MotorVelocity 20 //Percentage value of the power of the motor
-#define MaximumCCR 7199 //It establish the maximum counts of the capture compare register
 #define FirstTwoPinsMask (uint32_t) 0x03 //Mask for reading two pins
+#define FirstTwoPinsMaskPort (uint32_t) 0xFFFFFFFC //Mask for writing the port
 
 typedef enum bool
 {
 	false,
 	true
 }bool;
+
+
+typedef enum Stages
+{
+	WaitingHigh,
+	WaitingLow
+}Stages;
 
 enum Motor
 {
@@ -20,8 +27,17 @@ enum Motor
 	M_Stop
 }Motor;
 
+typedef struct Button
+{
+	GPIO_TypeDef *GPIOx;
+	uint16_t GPIO_Pin;
+	uint16_t Highs;
+	uint16_t Lows;
+	Stages Stages;
+}Buttons;
+
 TIM_HandleTypeDef htim1; //Paused Cycle handler @ 1ms, Using ISR, No channels
-TIM_HandleTypeDef htim2; //Motor PWM handler @ 10KHz, MaximumCCR = 7199, Channel 1, No ISR
+TIM_HandleTypeDef htim2; //Motor PWM handler @ 20KHz, MaximumCCR = 3599, Channel 1, No ISR
 
 void SystemClock_Config(void);
 static void MX_GPIO_Init(void);
@@ -30,7 +46,8 @@ static void MX_TIM2_Init(void);
 void Task_Gate(void);
 void Task_ReadPins(void);
 void Task_WriteMotor(void);
-uint16_t Task_Debounce(GPIO_TypeDef *GPIOx, uint16_t GPIO_Pin);
+uint16_t Task_Debounce(Buttons *Button);
+void Button_Init(Buttons *Button, GPIO_TypeDef *GPIOx, uint16_t GPIO_Pin);
 
 #ifdef USER_DEBUG
 volatile bool PauseFlag = true;
@@ -38,8 +55,11 @@ volatile bool PauseFlag = true;
 
 const uint32_t CCW = 0b01; //Counter Clockwise
 const uint32_t CW = 0b10; //Clock Wise
+uint32_t MaximumCCR; //It establish the maximum counts of the capture compare register
+uint32_t CCR; //Actual value on the CCR register
 bool Arrive_Open, Arrive_Close;
 bool B_Open, B_Close;
+Buttons Close_Button, Open_Button;
 
 int main(void)
 {
@@ -48,8 +68,13 @@ int main(void)
   MX_GPIO_Init();
   MX_TIM1_Init();
   MX_TIM2_Init();
-  TIM2 -> CCR1 = (uint32_t) ((MotorVelocity * MaximumCCR) / 100); //Setting the velocity of the motor
+  MaximumCCR = htim2.Init.Period;
+  CCR = (uint32_t) ((MotorVelocity * MaximumCCR) / 100); //Setting the velocity of the motor
+  TIM2 -> CCR1 = 0;
+  Button_Init(&Close_Button, Button_Close_GPIO_Port, Button_Close_Pin);
+  Button_Init(&Open_Button, Button_Open_GPIO_Port, Button_Open_Pin);
   HAL_TIM_Base_Start_IT(&htim1);
+  HAL_TIM_PWM_Start(&htim2, TIM_CHANNEL_1);
   while (1)
   {
 	  Task_ReadPins();
@@ -107,7 +132,8 @@ void Task_ReadPins(void)
 	enum Reading
 	{
 		LimitClose = 0b10,
-		LimitOpen = 0b01
+		LimitOpen = 0b01,
+		None = 0b11
 	}ReadPortA;
 
 	ReadPortA = ((GPIOA -> IDR)>>3)&FirstTwoPinsMask;
@@ -119,13 +145,13 @@ void Task_ReadPins(void)
 	if(ReadPortA == LimitOpen)
 		Arrive_Open = true;
 	else
-		Arrive_Open = true;
+		Arrive_Open = false;
 
-	if(Task_Debounce(Button_Close_GPIO_Port, Button_Close_Pin) == 1)
+	if(Task_Debounce(&Close_Button) == 1)
 		B_Close = true;
 	else
 		B_Close = false;
-	if(Task_Debounce(Button_Open_GPIO_Port, Button_Open_Pin) == 1)
+	if(Task_Debounce(&Open_Button) == 1)
 		B_Open = true;
 	else
 		B_Open = false;
@@ -136,15 +162,17 @@ void Task_WriteMotor(void)
 	switch(Motor)
 	{
 		case M_Open:
-			GPIOA -> ODR = (CCW<<1)&FirstTwoPinsMask; //Writing CCW direction to the L293D
-			HAL_TIM_PWM_Start(&htim2, TIM_CHANNEL_1);
+			GPIOA -> ODR = (GPIOA -> ODR&FirstTwoPinsMaskPort)|(CCW<<1); //Writing CCW direction to the L293D
+			TIM2 -> CCR1 = CCR;
 		break;
 		case M_Close:
-			GPIOA -> ODR = (CW<<1)&FirstTwoPinsMask; //Writing CW direction to the L293D
-			HAL_TIM_PWM_Start(&htim2, TIM_CHANNEL_1);
+			GPIOA -> ODR = (GPIOA -> ODR&FirstTwoPinsMaskPort)|(CW<<1); //Writing CW direction to the L293D
+			TIM2 -> CCR1 = CCR;
 		break;
 		case M_Stop:
-			HAL_TIM_PWM_Stop(&htim2, TIM_CHANNEL_1);
+			TIM2 -> CCR1 = 0;
+		break;
+		default:
 		break;
 	}
 }
@@ -152,42 +180,33 @@ void Task_WriteMotor(void)
 /**
  * @brief This task debounce a terminal, it is designed to run at 1ms
  * @note  It requires the declaration of the "PULL_DOWN" or the "PULL_UP" symbol for detection edge
- * 		  and the "SAMPLES" symbol for the number of samples
- * @param GPIOx: Port of the terminal
- * @param GPIO_Pin: Pin that you want to debounce
+ * 		  and the "SAMPLES" symbol for the number of samples, it also requires the button structure
+ * @param Button: Button that will be debounced
  * @return uint16_t: 1 for activate, 0 for desactivate
  */
-uint16_t Task_Debounce(GPIO_TypeDef *GPIOx, uint16_t GPIO_Pin){
-	enum Stages
+uint16_t Task_Debounce(Buttons *Button)
+{
+	if(HAL_GPIO_ReadPin(Button -> GPIOx, Button -> GPIO_Pin) == 0)
 	{
-		WaitingHigh,
-		WaitingLow
-	} static Stages = WaitingHigh;
-
-	static uint16_t Lows = 0;
-	static uint16_t Highs = 0;
-
-	if(HAL_GPIO_ReadPin(GPIOx, GPIO_Pin) == 0)
-	{
-		Lows++;
-		Highs = 0;
+		Button -> Lows = Button -> Lows + 1;
+		Button -> Highs = 0;
 	}
 	else
 	{
-		Lows = 0;
-		Highs++;
+		Button -> Lows = 0;
+		Button -> Highs = Button -> Highs + 1;
 	}
 
-	switch(Stages)
+	switch(Button -> Stages)
 	{
 		case WaitingHigh:
-			if(Highs == SAMPLES)
+			if(Button -> Highs == SAMPLES)
 			{
-				Stages = WaitingLow;
+				Button -> Stages = WaitingLow;
 #if defined(PULL_UP) || defined(BOTH_EDGES)
-				return 1;
-#else
 				return 0;
+#else
+				return 1;
 #endif
 			}
 			else
@@ -196,13 +215,13 @@ uint16_t Task_Debounce(GPIO_TypeDef *GPIOx, uint16_t GPIO_Pin){
 			}
 		break;
 		case WaitingLow:
-			if(Lows == SAMPLES)
+			if(Button -> Lows == SAMPLES)
 			{
-				Stages = WaitingHigh;
+				Button -> Stages = WaitingHigh;
 #if defined(PULL_DOWN) || defined(BOTH_EDGES)
-				return 1;
-#else
 				return 0;
+#else
+				return 1;
 #endif
 			}
 			else
@@ -214,6 +233,19 @@ uint16_t Task_Debounce(GPIO_TypeDef *GPIOx, uint16_t GPIO_Pin){
 			return 0;
 		break;
 	}
+}
+
+void Button_Init(Buttons *Button, GPIO_TypeDef *GPIOx, uint16_t GPIO_Pin)
+{
+	Button -> GPIOx = GPIOx;
+	Button -> GPIO_Pin = GPIO_Pin;
+	Button -> Highs = 0;
+	Button -> Lows = 0;
+#if defined(PULL_UP) || defined(BOTH_EGDES)
+	Button -> Stages = WaitingHigh;
+#else
+	Button -> Stages = WaitingLow;
+#endif
 }
 
 void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
@@ -328,9 +360,9 @@ static void MX_TIM2_Init(void)
 
   /* USER CODE END TIM2_Init 1 */
   htim2.Instance = TIM2;
-  htim2.Init.Prescaler = 0;
+  htim2.Init.Prescaler = 1;
   htim2.Init.CounterMode = TIM_COUNTERMODE_UP;
-  htim2.Init.Period = 7199;
+  htim2.Init.Period = 35999;
   htim2.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
   htim2.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_ENABLE;
   if (HAL_TIM_Base_Init(&htim2) != HAL_OK)
@@ -354,7 +386,7 @@ static void MX_TIM2_Init(void)
   }
   sConfigOC.OCMode = TIM_OCMODE_PWM1;
   sConfigOC.Pulse = 0;
-  sConfigOC.OCPolarity = TIM_OCPOLARITY_LOW;
+  sConfigOC.OCPolarity = TIM_OCPOLARITY_HIGH;
   sConfigOC.OCFastMode = TIM_OCFAST_DISABLE;
   if (HAL_TIM_PWM_ConfigChannel(&htim2, &sConfigOC, TIM_CHANNEL_1) != HAL_OK)
   {
