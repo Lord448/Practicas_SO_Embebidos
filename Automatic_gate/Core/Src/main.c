@@ -5,7 +5,7 @@
 #define SAMPLES 5 //It configures the number of samples in the debouncing task
 #define MotorVelocity 20 //Percentage value of the power of the motor
 #define FirstTwoPinsMask (uint32_t) 0x03 //Mask for reading two pins
-#define FirstTwoPinsMaskPort (uint32_t) 0xFFFFFFFC //Mask for writing the port
+#define TwoPinsMaskPort (uint32_t) 0xFFFFFFF9 //Mask for writing the port
 
 typedef enum bool
 {
@@ -162,14 +162,15 @@ void Task_WriteMotor(void)
 	switch(Motor)
 	{
 		case M_Open:
-			GPIOA -> ODR = (GPIOA -> ODR&FirstTwoPinsMaskPort)|(CCW<<1); //Writing CCW direction to the L293D
+			GPIOA -> ODR = (GPIOA -> ODR&TwoPinsMaskPort)|(CCW<<1); //Writing CCW direction to the L293D
 			TIM2 -> CCR1 = CCR;
 		break;
 		case M_Close:
-			GPIOA -> ODR = (GPIOA -> ODR&FirstTwoPinsMaskPort)|(CW<<1); //Writing CW direction to the L293D
+			GPIOA -> ODR = (GPIOA -> ODR&TwoPinsMaskPort)|(CW<<1); //Writing CW direction to the L293D
 			TIM2 -> CCR1 = CCR;
 		break;
 		case M_Stop:
+			GPIOA -> ODR = (GPIOA -> ODR&TwoPinsMaskPort)|(0b00<<1);
 			TIM2 -> CCR1 = 0;
 		break;
 		default:
@@ -318,7 +319,7 @@ static void MX_TIM1_Init(void)
   htim1.Init.Period = 35999;
   htim1.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
   htim1.Init.RepetitionCounter = 0;
-  htim1.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_DISABLE;
+  htim1.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_ENABLE;
   if (HAL_TIM_Base_Init(&htim1) != HAL_OK)
   {
     Error_Handler();
@@ -360,9 +361,9 @@ static void MX_TIM2_Init(void)
 
   /* USER CODE END TIM2_Init 1 */
   htim2.Instance = TIM2;
-  htim2.Init.Prescaler = 1;
+  htim2.Init.Prescaler = 2;
   htim2.Init.CounterMode = TIM_COUNTERMODE_UP;
-  htim2.Init.Period = 35999;
+  htim2.Init.Period = 47999;
   htim2.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
   htim2.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_ENABLE;
   if (HAL_TIM_Base_Init(&htim2) != HAL_OK)
@@ -386,7 +387,7 @@ static void MX_TIM2_Init(void)
   }
   sConfigOC.OCMode = TIM_OCMODE_PWM1;
   sConfigOC.Pulse = 0;
-  sConfigOC.OCPolarity = TIM_OCPOLARITY_HIGH;
+  sConfigOC.OCPolarity = TIM_OCPOLARITY_LOW;
   sConfigOC.OCFastMode = TIM_OCFAST_DISABLE;
   if (HAL_TIM_PWM_ConfigChannel(&htim2, &sConfigOC, TIM_CHANNEL_1) != HAL_OK)
   {
