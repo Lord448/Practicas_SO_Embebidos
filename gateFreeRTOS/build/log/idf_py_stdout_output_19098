@@ -1,0 +1,61 @@
+[0/1] Re-running CMake...
+-- Building ESP-IDF components for target esp32
+Processing 2 dependencies:
+[1/2] espressif/led_strip (2.3.0)
+[2/2] idf (5.0.1)
+-- Project sdkconfig file /home/lord448/Escritorio/STM32Workspaces/Practicas_SO_Embebidos/gateFreeRTOS/sdkconfig
+-- App "gateFreeRTOS" version: 654a13e-dirty
+-- Adding linker script /home/lord448/Escritorio/STM32Workspaces/Practicas_SO_Embebidos/gateFreeRTOS/build/esp-idf/esp_system/ld/memory.ld
+-- Adding linker script /home/lord448/esp/esp-idf/components/esp_system/ld/esp32/sections.ld.in
+-- Adding linker script /home/lord448/esp/esp-idf/components/esp_rom/esp32/ld/esp32.rom.ld
+-- Adding linker script /home/lord448/esp/esp-idf/components/esp_rom/esp32/ld/esp32.rom.api.ld
+-- Adding linker script /home/lord448/esp/esp-idf/components/esp_rom/esp32/ld/esp32.rom.libgcc.ld
+-- Adding linker script /home/lord448/esp/esp-idf/components/esp_rom/esp32/ld/esp32.rom.newlib-data.ld
+-- Adding linker script /home/lord448/esp/esp-idf/components/esp_rom/esp32/ld/esp32.rom.syscalls.ld
+-- Adding linker script /home/lord448/esp/esp-idf/components/esp_rom/esp32/ld/esp32.rom.newlib-funcs.ld
+-- Adding linker script /home/lord448/esp/esp-idf/components/soc/esp32/ld/esp32.peripherals.ld
+-- Components: app_trace app_update bootloader bootloader_support bt cmock console cxx driver efuse esp-tls esp_adc esp_app_format esp_common esp_eth esp_event esp_gdbstub esp_hid esp_http_client esp_http_server esp_https_ota esp_https_server esp_hw_support esp_lcd esp_local_ctrl esp_netif esp_partition esp_phy esp_pm esp_psram esp_ringbuf esp_rom esp_system esp_timer esp_wifi espcoredump espressif__led_strip esptool_py fatfs freertos hal heap http_parser idf_test ieee802154 json log lwip main mbedtls mqtt newlib nvs_flash openthread partition_table perfmon protobuf-c protocomm pthread sdmmc soc spi_flash spiffs tcp_transport ulp unity usb vfs wear_levelling wifi_provisioning wpa_supplicant xtensa
+-- Component paths: /home/lord448/esp/esp-idf/components/app_trace /home/lord448/esp/esp-idf/components/app_update /home/lord448/esp/esp-idf/components/bootloader /home/lord448/esp/esp-idf/components/bootloader_support /home/lord448/esp/esp-idf/components/bt /home/lord448/esp/esp-idf/components/cmock /home/lord448/esp/esp-idf/components/console /home/lord448/esp/esp-idf/components/cxx /home/lord448/esp/esp-idf/components/driver /home/lord448/esp/esp-idf/components/efuse /home/lord448/esp/esp-idf/components/esp-tls /home/lord448/esp/esp-idf/components/esp_adc /home/lord448/esp/esp-idf/components/esp_app_format /home/lord448/esp/esp-idf/components/esp_common /home/lord448/esp/esp-idf/components/esp_eth /home/lord448/esp/esp-idf/components/esp_event /home/lord448/esp/esp-idf/components/esp_gdbstub /home/lord448/esp/esp-idf/components/esp_hid /home/lord448/esp/esp-idf/components/esp_http_client /home/lord448/esp/esp-idf/components/esp_http_server /home/lord448/esp/esp-idf/components/esp_https_ota /home/lord448/esp/esp-idf/components/esp_https_server /home/lord448/esp/esp-idf/components/esp_hw_support /home/lord448/esp/esp-idf/components/esp_lcd /home/lord448/esp/esp-idf/components/esp_local_ctrl /home/lord448/esp/esp-idf/components/esp_netif /home/lord448/esp/esp-idf/components/esp_partition /home/lord448/esp/esp-idf/components/esp_phy /home/lord448/esp/esp-idf/components/esp_pm /home/lord448/esp/esp-idf/components/esp_psram /home/lord448/esp/esp-idf/components/esp_ringbuf /home/lord448/esp/esp-idf/components/esp_rom /home/lord448/esp/esp-idf/components/esp_system /home/lord448/esp/esp-idf/components/esp_timer /home/lord448/esp/esp-idf/components/esp_wifi /home/lord448/esp/esp-idf/components/espcoredump /home/lord448/Escritorio/STM32Workspaces/Practicas_SO_Embebidos/gateFreeRTOS/managed_components/espressif__led_strip /home/lord448/esp/esp-idf/components/esptool_py /home/lord448/esp/esp-idf/components/fatfs /home/lord448/esp/esp-idf/components/freertos /home/lord448/esp/esp-idf/components/hal /home/lord448/esp/esp-idf/components/heap /home/lord448/esp/esp-idf/components/http_parser /home/lord448/esp/esp-idf/components/idf_test /home/lord448/esp/esp-idf/components/ieee802154 /home/lord448/esp/esp-idf/components/json /home/lord448/esp/esp-idf/components/log /home/lord448/esp/esp-idf/components/lwip /home/lord448/Escritorio/STM32Workspaces/Practicas_SO_Embebidos/gateFreeRTOS/main /home/lord448/esp/esp-idf/components/mbedtls /home/lord448/esp/esp-idf/components/mqtt /home/lord448/esp/esp-idf/components/newlib /home/lord448/esp/esp-idf/components/nvs_flash /home/lord448/esp/esp-idf/components/openthread /home/lord448/esp/esp-idf/components/partition_table /home/lord448/esp/esp-idf/components/perfmon /home/lord448/esp/esp-idf/components/protobuf-c /home/lord448/esp/esp-idf/components/protocomm /home/lord448/esp/esp-idf/components/pthread /home/lord448/esp/esp-idf/components/sdmmc /home/lord448/esp/esp-idf/components/soc /home/lord448/esp/esp-idf/components/spi_flash /home/lord448/esp/esp-idf/components/spiffs /home/lord448/esp/esp-idf/components/tcp_transport /home/lord448/esp/esp-idf/components/ulp /home/lord448/esp/esp-idf/components/unity /home/lord448/esp/esp-idf/components/usb /home/lord448/esp/esp-idf/components/vfs /home/lord448/esp/esp-idf/components/wear_levelling /home/lord448/esp/esp-idf/components/wifi_provisioning /home/lord448/esp/esp-idf/components/wpa_supplicant /home/lord448/esp/esp-idf/components/xtensa
+-- Configuring done
+-- Generating done
+-- Build files have been written to: /home/lord448/Escritorio/STM32Workspaces/Practicas_SO_Embebidos/gateFreeRTOS/build
+[1/10] Building C object esp-idf/main/CMakeFiles/__idf_main.dir/main.c.obj
+[2/10] Linking C static library esp-idf/main/libmain.a
+[3/10] Performing build step for 'bootloader'
+[0/1] Re-running CMake...
+-- Building ESP-IDF components for target esp32
+-- Project sdkconfig file /home/lord448/Escritorio/STM32Workspaces/Practicas_SO_Embebidos/gateFreeRTOS/sdkconfig
+-- Adding linker script /home/lord448/esp/esp-idf/components/soc/esp32/ld/esp32.peripherals.ld
+-- App "bootloader" version: v5.0.1
+-- Adding linker script /home/lord448/esp/esp-idf/components/esp_rom/esp32/ld/esp32.rom.ld
+-- Adding linker script /home/lord448/esp/esp-idf/components/esp_rom/esp32/ld/esp32.rom.api.ld
+-- Adding linker script /home/lord448/esp/esp-idf/components/esp_rom/esp32/ld/esp32.rom.libgcc.ld
+-- Adding linker script /home/lord448/esp/esp-idf/components/esp_rom/esp32/ld/esp32.rom.newlib-funcs.ld
+-- Adding linker script /home/lord448/esp/esp-idf/components/bootloader/subproject/main/ld/esp32/bootloader.ld
+-- Adding linker script /home/lord448/esp/esp-idf/components/bootloader/subproject/main/ld/esp32/bootloader.rom.ld
+-- Components: bootloader bootloader_support efuse esp_app_format esp_common esp_hw_support esp_rom esp_system esptool_py freertos hal log main micro-ecc newlib partition_table soc spi_flash xtensa
+-- Component paths: /home/lord448/esp/esp-idf/components/bootloader /home/lord448/esp/esp-idf/components/bootloader_support /home/lord448/esp/esp-idf/components/efuse /home/lord448/esp/esp-idf/components/esp_app_format /home/lord448/esp/esp-idf/components/esp_common /home/lord448/esp/esp-idf/components/esp_hw_support /home/lord448/esp/esp-idf/components/esp_rom /home/lord448/esp/esp-idf/components/esp_system /home/lord448/esp/esp-idf/components/esptool_py /home/lord448/esp/esp-idf/components/freertos /home/lord448/esp/esp-idf/components/hal /home/lord448/esp/esp-idf/components/log /home/lord448/esp/esp-idf/components/bootloader/subproject/main /home/lord448/esp/esp-idf/components/bootloader/subproject/components/micro-ecc /home/lord448/esp/esp-idf/components/newlib /home/lord448/esp/esp-idf/components/partition_table /home/lord448/esp/esp-idf/components/soc /home/lord448/esp/esp-idf/components/spi_flash /home/lord448/esp/esp-idf/components/xtensa
+-- Configuring done
+-- Generating done
+-- Build files have been written to: /home/lord448/Escritorio/STM32Workspaces/Practicas_SO_Embebidos/gateFreeRTOS/build/bootloader
+[1/1] cd /home/lord448/Escritorio/STM32Workspaces/Practicas_SO_Embebidos/gateFreeRTOS/build/bootloader/esp-idf/esptool_py && /home/lord448/.espressif/python_env/idf5.0_py3.10_env/bin/python /home/lord448/esp/esp-idf/components/partition_table/check_sizes.py --offset 0x8000 bootloader 0x1000 /home/lord448/Escritorio/STM32Workspaces/Practicas_SO_Embebidos/gateFreeRTOS/build/bootloader/bootloader.bin
+Bootloader binary size 0x6700 bytes. 0x900 bytes (8%) free.
+[4/8] Generating ld/sections.ld
+[5/8] Linking CXX executable gateFreeRTOS.elf
+[6/8] Generating binary image from built executable
+esptool.py v4.5.1
+Creating esp32 image...
+Merged 2 ELF sections
+Successfully created esp32 image.
+Generated /home/lord448/Escritorio/STM32Workspaces/Practicas_SO_Embebidos/gateFreeRTOS/build/gateFreeRTOS.bin
+[7/8] cd /home/lord448/Escritorio/STM32Workspaces/Practicas_SO_Embebidos/gateFreeRTOS/build/esp-idf/esptool_py && /home/lord448/.espressif/python_env/idf5.0_py3.10_env/bin/python /home/lord448/esp/esp-idf/components/partition_table/check_sizes.py --offset 0x8000 partition --type app /home/lord448/Escritorio/STM32Workspaces/Practicas_SO_Embebidos/gateFreeRTOS/build/partition_table/partition-table.bin /home/lord448/Escritorio/STM32Workspaces/Practicas_SO_Embebidos/gateFreeRTOS/build/gateFreeRTOS.bin
+gateFreeRTOS.bin binary size 0x2d670 bytes. Smallest app partition is 0x100000 bytes. 0xd2990 bytes (82%) free.
+[7/8] cd /home/lord448/esp/esp-idf/components/esptool_py && /usr/bin/cmake -D IDF_PATH=/home/lord448/esp/esp-idf -D "SERIAL_TOOL=/home/lord448/.espressif/python_env/idf5.0_py3.10_env/bin/python;;/home/lord448/esp/esp-idf/components/esptool_py/esptool/esptool.py;--chip;esp32" -D "SERIAL_TOOL_ARGS=--before=default_reset;--after=hard_reset;write_flash;@flash_args" -D WORKING_DIRECTORY=/home/lord448/Escritorio/STM32Workspaces/Practicas_SO_Embebidos/gateFreeRTOS/build -P /home/lord448/esp/esp-idf/components/esptool_py/run_serial_tool.cmake
+esptool esp32 -p /dev/ttyUSB0 -b 460800 --before=default_reset --after=hard_reset write_flash --flash_mode dio --flash_freq 40m --flash_size 2MB 0x1000 bootloader/bootloader.bin 0x10000 gateFreeRTOS.bin 0x8000 partition_table/partition-table.bin
+esptool.py v4.5.1
+Serial port /dev/ttyUSB0
+
+A fatal error occurred: Could not open /dev/ttyUSB0, the port doesn't exist
+FAILED: CMakeFiles/flash /home/lord448/Escritorio/STM32Workspaces/Practicas_SO_Embebidos/gateFreeRTOS/build/CMakeFiles/flash 
+cd /home/lord448/esp/esp-idf/components/esptool_py && /usr/bin/cmake -D IDF_PATH=/home/lord448/esp/esp-idf -D "SERIAL_TOOL=/home/lord448/.espressif/python_env/idf5.0_py3.10_env/bin/python;;/home/lord448/esp/esp-idf/components/esptool_py/esptool/esptool.py;--chip;esp32" -D "SERIAL_TOOL_ARGS=--before=default_reset;--after=hard_reset;write_flash;@flash_args" -D WORKING_DIRECTORY=/home/lord448/Escritorio/STM32Workspaces/Practicas_SO_Embebidos/gateFreeRTOS/build -P /home/lord448/esp/esp-idf/components/esptool_py/run_serial_tool.cmake
+ninja: build stopped: subcommand failed.
