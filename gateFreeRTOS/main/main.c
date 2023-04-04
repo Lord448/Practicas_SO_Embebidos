@@ -40,11 +40,16 @@ static QueueHandle_t xFIFOButtons = NULL;
 //Tasks prototypes
 static void vTaskDebouncing(void *pvParameters);
 //General globlal prototypes
-static void vAbriendo(void);
-static void vCerrando(void);
-static void vSinMov(void);
+static void vOpen(void);
+static void vClose(void);
+static void vNoMov(void);
 static void vConfigPins(void);
 
+/**
+ * @brief This is the main thread called by the task scheduler, it also
+ *        handle the gate task
+ * 
+ */
 void app_main(void)
 {
     uint32_t buttonPressed;
@@ -67,24 +72,24 @@ void app_main(void)
         if (0b01 == buttonPressed && 1==gpio_get_level(GPIO_LimitOpen))
         {
             ESP_LOGI(TAG, "Setting Open Motor");
-            vAbriendo();
+            vOpen();
             while(gpio_get_level(GPIO_LimitOpen) == 1)
                 vTaskDelay(pdMS_TO_TICKS(50));
-            vSinMov();
+            vNoMov();
         }
         //Asking for the close button
         else if (0b10 == buttonPressed && 1==gpio_get_level(GPIO_LimitClose))
         {
             ESP_LOGI(TAG, "Setting Close Motor");
-            vCerrando();
+            vClose();
             while(gpio_get_level(GPIO_LimitClose) == 1)
                 vTaskDelay(pdMS_TO_TICKS(50));
-            vSinMov();
+            vNoMov();
         }
         else
         {
             ESP_LOGI(TAG, "No move");
-            vSinMov();
+            vNoMov();
         }
     }
 }
@@ -155,29 +160,36 @@ static void vTaskDebouncing(void *pvParameters)
 }
 
 /**
- * @brief 
- * 
- * @param pvParameters 
- * @retval none
+ * @brief Put the GPIO'S in the correct level to open the gate
  */
-static void vAbriendo(void)
+static void vOpen(void)
 {
     gpio_set_level(GPIO_Driver1, 0);
     gpio_set_level(GPIO_Driver2, 1);   
 }
 
-static void vCerrando(void)
+/**
+ * @brief Put the GPIO'S in the correct level to close the gate
+ */
+static void vClose(void)
 {
     gpio_set_level(GPIO_Driver1, 1);
     gpio_set_level(GPIO_Driver2, 0);
 }
-
-static void vSinMov(void)
+/**
+ * @brief Put the GPIO'S in the correct level to stop the motor
+ * 
+ */
+static void vNoMov(void)
 {
     gpio_set_level(GPIO_Driver1, 0);
     gpio_set_level(GPIO_Driver2, 0);
 }
-
+/**
+ * @brief Configure all the out and in GPIO's
+ * @note All the inputs have internal pull up resistors
+ * 
+ */
 static void vConfigPins(void)
 {
     gpio_config_t io_conf;
