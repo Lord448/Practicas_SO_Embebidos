@@ -6,7 +6,6 @@
  * @date 2023-03-27
  * 
  * @copyright Copyright (c) 2023
- * @todo finished but not debugged
  */
 
 #include <stdio.h>
