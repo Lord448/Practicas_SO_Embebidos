@@ -25,7 +25,9 @@
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
 #include "freertos/queue.h"
+#include "freertos/semphr.h"
 #include "driver/gpio.h"
+#include "driver/gptimer.h"
 #include "esp_log.h"
 #include "sdkconfig.h"
 
@@ -46,40 +48,110 @@
 
 #define GPIO_LED GPIO_NUM_2
 
-#define KB_A        0xf0
-#define KB_B        0xf1
+#define KB_A        0xf0 
+#define KB_B        0xf1 
 #define KB_C        0xf2
 #define KB_D        0xf3
 #define KB_Asterisk 0xf4
 #define KB_Hash     0xf5
 
+#define Intro  KB_Hash
+#define Return KB_Asterisk
+#define Stop   KB_A
+
+#define ToInt(x) x-0x30
+
 static const char *MainTag = "Main:";
 
 int columnas[]={GPIO_COLUMNA_1,GPIO_COLUMNA_2,GPIO_COLUMNA_3,GPIO_COLUMNA_4};
 int renglones[]={GPIO_RENGLON_1,GPIO_RENGLON_2,GPIO_RENGLON_3,GPIO_RENGLON_4};
+static char tabla[]={KB_A,3,2,1,KB_B,6,5,4,KB_C,9,8,7,KB_D,KB_Hash,0,KB_Asterisk};
 
 //Define las colas para la comunicación de eventos del teclado 
 //static QueueHandle_t xFIFOTeclado;
 static QueueHandle_t xFIFOTeclado = NULL;
+static SemaphoreHandle_t xSemaphoreISR = NULL;
 
-// define la tarea del teclado 
 static void vTaskTeclado(void *pvParameters);
+static void vSelectTime(void);
 static void IRAM_ATTR ReachedValueCallback(gptimer_handle_t timer, const gptimer_alarm_event_data_t *edata, void *user_data);
 
 
 void app_main(void)
 {
-    char tabla[]={KB_A,3,2,1,KB_B,6,5,4,KB_C,9,8,7,KB_D,KB_Hash,0,KB_Asterisk};
-    int tecla;
+    uint16_t tecla, counter = 0;
+    uint16_t minutes, seconds = 0;
+    char timeSelected[5] = {' '};
+    bool notInput = true;
     //crea el FIFO del teclado
     xFIFOTeclado = xQueueCreate(10, sizeof(int));
+    xSemaphoreISR = xSemaphoreCreateBinary();
     //start gpio task
-    xTaskCreate(TaskTeclado, "TareaTeclado", configMINIMAL_STACK_SIZE+1024, NULL, 1, NULL);
-
+    xTaskCreate(vTaskTeclado, "TareaTeclado", configMINIMAL_STACK_SIZE+1024, NULL, 1, NULL);
+    printf("Select the time: ");
     while(1) 
     {
-        
+        for(uint16_t i = 0; notInput; i++)
+        {
+            xQueueReceive(xFIFOTeclado, &tecla, portMAX_DELAY);
+            switch(tecla)
+            {
+                case Intro:
+                    if(timeSelected[i] == ' ')
+                    {
+                        timeSelected[i] = '0';
+                        printf("0");
+                    }
+                    counter++;
+                    if(counter == 2)
+                    {
+                        notInput = false;
+                        timeSelected[i+1] = '/'; //I don't remember which was the string finisher in C
+                    }
+                    else 
+                    {
+                        printf(",");
+                        timeSelected[i] = ',';
+                    }
+                break;
+                case Return:
+                    if(i != 0)
+                    {   
+                        i--;
+                        timeSelected[i] = ' ';
+                    }
+                break;
+                case Stop:
+                case KB_B:
+                case KB_C:
+                case KB_D:
+                break;
+                default:
+                    printf("%xh", tabla[tecla]);
+                    timeSelected[i] = tabla[tecla];
+                break;
+            }
+        }
+        ESP_LOGI(MainTag, "%sh", timeSelected);
+        //Once the time is input
+        minutes = ToInt(timeSelected[0]);
+        for(uint16_t i = 2; i < sizeof(timeSelected); i++)
+        {
+            seconds *= 10;
+            seconds += ToInt(timeSelected[i]);
+        }
+        ESP_LOGI(MainTag, "Minutes: %d", minutes);
+        ESP_LOGI(MainTag, "Seconds: %d", seconds);
+
+        //Set the timer counter for the requested time here
+        //Turn on the led
+        //Wait for the timer or the External ISR to get the semaphore
     }
+}
+
+static void vSelectTime(void)
+{
+
 }
 
 signed int explora()
