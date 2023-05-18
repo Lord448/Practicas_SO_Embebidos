@@ -7,13 +7,13 @@
  * @note The keyboard convention is the following:
  * 
  *          Keyboard layout            Key code
- *          |------------|        |----------------|
- *          | 1  2  3  A |      3 | 12  13  14  15 |
- *          | 4  5  6  B |      2 | 8   9   10  11 |
- *          | 7  8  9  C |      1 | 4   5   6   7  |
- *          | *  0  #  D |      0 | 0   1   2   3  |
- *          |------------|        |----------------|
- *                                  0   1   2   3
+ *          |--------------------|        |----------------|
+ *          |   1    2    3    A |      3 | 12  13  14  15 |
+ *          |   4    5    6    B |      2 | 8   9   10  11 |
+ *          |   7    8    9    C |      1 | 4   5   6   7  |
+ *          | Start  0  Stop   D |      0 | 0   1   2   3  |
+ *          |--------------------|        |----------------|
+ *                                          0   1   2   3
  * 
  * @copyright Copyright (c) 2023
  * @todo all
@@ -52,12 +52,11 @@
 #define KB_B        0xf1 
 #define KB_C        0xf2
 #define KB_D        0xf3
-#define KB_Asterisk 0xf4
-#define KB_Hash     0xf5
+#define KB_Start    0xf4
+#define KB_Stop     0xf5
 
-#define Intro  KB_Hash
-#define Return KB_Asterisk
-#define Stop   KB_A
+#define Intro  KB_Start
+#define Return KB_Stop
 
 #define ToInt(x) x-0x30
 
@@ -65,29 +64,29 @@ static const char *MainTag = "Main:";
 
 int columnas[]={GPIO_COLUMNA_1,GPIO_COLUMNA_2,GPIO_COLUMNA_3,GPIO_COLUMNA_4};
 int renglones[]={GPIO_RENGLON_1,GPIO_RENGLON_2,GPIO_RENGLON_3,GPIO_RENGLON_4};
-static char tabla[]={KB_A,3,2,1,KB_B,6,5,4,KB_C,9,8,7,KB_D,KB_Hash,0,KB_Asterisk};
+static char tabla[]={KB_A,3,2,1,KB_B,6,5,4,KB_C,9,8,7,KB_D,KB_Stop,0,KB_Start};
 
-//Define las colas para la comunicación de eventos del teclado 
-//static QueueHandle_t xFIFOTeclado;
 static QueueHandle_t xFIFOTeclado = NULL;
-static SemaphoreHandle_t xSemaphoreISR = NULL;
+static SemaphoreHandle_t xSemaphoreFinishedTime = NULL;
+static SemaphoreHandle_t xSemaphoreCheckStop = NULL;
 
 static void vTaskTeclado(void *pvParameters);
-static void vSelectTime(void);
+static void vTaskCheckStop(void *pvParameters);
 static void IRAM_ATTR ReachedValueCallback(gptimer_handle_t timer, const gptimer_alarm_event_data_t *edata, void *user_data);
-
 
 void app_main(void)
 {
     uint16_t tecla, counter = 0;
     uint16_t minutes, seconds = 0;
-    char timeSelected[5] = {' '};
+    char timeSelected[5];
     bool notInput = true;
-    //crea el FIFO del teclado
+
     xFIFOTeclado = xQueueCreate(10, sizeof(int));
-    xSemaphoreISR = xSemaphoreCreateBinary();
-    //start gpio task
+    xSemaphoreFinishedTime = xSemaphoreCreateBinary();
+    xSemaphoreCheckStop = xSemaphoreCreateBinary();
     xTaskCreate(vTaskTeclado, "TareaTeclado", configMINIMAL_STACK_SIZE+1024, NULL, 1, NULL);
+    xTaskCreate(vTaskCheckStop, "TaskCheckStop", configMINIMAL_STACK_SIZE+1024, NULL, 1, NULL);
+
     printf("Select the time: ");
     while(1) 
     {
@@ -121,7 +120,7 @@ void app_main(void)
                         timeSelected[i] = ' ';
                     }
                 break;
-                case Stop:
+                case KB_A:
                 case KB_B:
                 case KB_C:
                 case KB_D:
@@ -144,14 +143,13 @@ void app_main(void)
         ESP_LOGI(MainTag, "Seconds: %d", seconds);
 
         //Set the timer counter for the requested time here
+
         //Turn on the led
+        gpio_set_level(GPIO_LED, 1);
         //Wait for the timer or the External ISR to get the semaphore
+        xSemaphoreTake(xSemaphoreFinishedTime, portMAX_DELAY);
+        gpio_set_level(GPIO_LED, 0);
     }
-}
-
-static void vSelectTime(void)
-{
-
 }
 
 signed int explora()
@@ -254,9 +252,49 @@ static void vTaskTeclado(void *pvParameters)
     }
 }
 
+//Check if works
+static void vTaskCheckStop(void *pvParameters)
+{
+    bool notFinishedCycle = true;
+    uint16_t tecla = 0;
+
+    for(;;)
+    {
+        xSemaphoreTake(xSemaphoreCheckStop, portMAX_DELAY);
+        while(notFinishedCycle)
+        {
+            xQueueReceive(xFIFOTeclado, &tecla, portMAX_DELAY);
+            switch (tecla)
+            {
+                case KB_Stop:
+                    xSemaphoreGive(xSemaphoreFinishedTime);
+                    notFinishedCycle = false;
+                break;
+                default:
+                break;
+            }
+        }
+    }
+}
+
+//@todo
 //ISR Callbacks
 static void IRAM_ATTR ReachedValueCallback(gptimer_handle_t timer, const gptimer_alarm_event_data_t *edata, void *user_data)
 {
     BaseType_t high_task_awoken = pdFALSE;
     QueueHandle_t FIFO = (QueueHandle_t) user_data;
+}
+
+
+//@todo
+static void timerInit(void)
+{
+    timer_config_t config = {
+        .clk_src = TIMER_SRC_CLK_DEFAULT,
+        .divider = APB_CLK_FREQ / TIMER_RESOLUTION_HZ,
+        .counter_dir = TIMER_COUNT_UP,
+        .counter_en = TIMER_PAUSE,
+        .alarm_en = TIMER_ALARM_EN,
+        .auto_reload = true,
+    }
 }

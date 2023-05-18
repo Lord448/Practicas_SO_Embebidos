@@ -1,21 +1,14 @@
-00:42:07 **** Incremental Build of configuration Debug for project Automatic_gate ****
+02:34:02 **** Incremental Build of configuration Debug for project Control_Plot ****
 make -j16 all 
-arm-none-eabi-gcc "../Core/Src/main.c" -mcpu=cortex-m3 -std=gnu11 -g3 -DDEBUG -DUSE_HAL_DRIVER -DSTM32F103xB -c -I../Core/Inc -I../Drivers/STM32F1xx_HAL_Driver/Inc/Legacy -I../Drivers/STM32F1xx_HAL_Driver/Inc -I../Drivers/CMSIS/Device/ST/STM32F1xx/Include -I../Drivers/CMSIS/Include -O0 -ffunction-sections -fdata-sections -Wall -fstack-usage -MMD -MP -MF"Core/Src/main.d" -MT"Core/Src/main.o" --specs=nano.specs -mfloat-abi=soft -mthumb -o "Core/Src/main.o"
-arm-none-eabi-gcc -o "Automatic_gate.elf" @"objects.list"   -mcpu=cortex-m3 -T"/home/lord448/Escritorio/STM32 Workspaces/Practicas_SO_Embebidos/Automatic_gate/STM32F103C8TX_FLASH.ld" --specs=nosys.specs -Wl,-Map="Automatic_gate.map" -Wl,--gc-sections -static --specs=nano.specs -mfloat-abi=soft -mthumb -Wl,--start-group -lc -lm -Wl,--end-group
-Finished building target: Automatic_gate.elf
+arm-none-eabi-gcc "../Core/Src/main.c" -mcpu=cortex-m4 -std=gnu11 -g3 -DDEBUG -DUSE_HAL_DRIVER -DSTM32F401xE -c -I../Core/Inc -I../Drivers/STM32F4xx_HAL_Driver/Inc -I../Drivers/STM32F4xx_HAL_Driver/Inc/Legacy -I../Drivers/CMSIS/Device/ST/STM32F4xx/Include -I../Drivers/CMSIS/Include -I../Middlewares/Third_Party/FreeRTOS/Source/include -I../Middlewares/Third_Party/FreeRTOS/Source/CMSIS_RTOS_V2 -I../Middlewares/Third_Party/FreeRTOS/Source/portable/GCC/ARM_CM4F -I../USB_DEVICE/App -I../USB_DEVICE/Target -I../Middlewares/ST/STM32_USB_Device_Library/Core/Inc -I../Middlewares/ST/STM32_USB_Device_Library/Class/CDC/Inc -O0 -ffunction-sections -fdata-sections -Wall -fstack-usage -MMD -MP -MF"Core/Src/main.d" -MT"Core/Src/main.o" --specs=nano.specs -mfpu=fpv4-sp-d16 -mfloat-abi=hard -mthumb -o "Core/Src/main.o"
+arm-none-eabi-gcc -o "Control_Plot.elf" @"objects.list"   -mcpu=cortex-m4 -T"/home/lord448/Escritorio/STM32Workspaces/Practicas_SO_Embebidos/Control_Plot/STM32F401CEUX_FLASH.ld" --specs=nosys.specs -Wl,-Map="Control_Plot.map" -Wl,--gc-sections -static --specs=nano.specs -mfpu=fpv4-sp-d16 -mfloat-abi=hard -mthumb -Wl,--start-group -lc -lm -Wl,--end-group
+Finished building target: Control_Plot.elf
  
-arm-none-eabi-size   Automatic_gate.elf 
-arm-none-eabi-objdump -h -S  Automatic_gate.elf  > "Automatic_gate.list"
+arm-none-eabi-size   Control_Plot.elf 
+arm-none-eabi-objdump -h -S  Control_Plot.elf  > "Control_Plot.list"
    text	   data	    bss	    dec	    hex	filename
-   9952	     24	   1760	  11736	   2dd8	Automatic_gate.elf
+  49308	    364	  27076	  76748	  12bcc	Control_Plot.elf
 Finished building: default.size.stdout
  
-Finished building: Automatic_gate.list
- 
-00:42:11 **** Incremental Build of configuration Debug for project Automatic_gate ****
-make -j16 all 
-arm-none-eabi-size   Automatic_gate.elf 
-   text	   data	    bss	    dec	    hex	filename
-   9952	     24	   1760	  11736	   2dd8	Automatic_gate.elf
-Finished building: default.size.stdout
+Finished building: Control_Plot.list
  
