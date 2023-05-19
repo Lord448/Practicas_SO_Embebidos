@@ -26,6 +26,7 @@
 #include "freertos/task.h"
 #include "freertos/queue.h"
 #include "freertos/semphr.h"
+#include "freertos/timers.h"
 #include "driver/gpio.h"
 #include "driver/gptimer.h"
 #include "esp_log.h"
@@ -61,18 +62,25 @@
 #define ToInt(x) x-0x30
 
 static const char *MainTag = "Main:";
+static const char *TimeCalcuTAG = "Time Calculate: ";
+static const char *TimerCallbackTAG = "TimerCallback: ";
 
 int columnas[]={GPIO_COLUMNA_1,GPIO_COLUMNA_2,GPIO_COLUMNA_3,GPIO_COLUMNA_4};
 int renglones[]={GPIO_RENGLON_1,GPIO_RENGLON_2,GPIO_RENGLON_3,GPIO_RENGLON_4};
 static char tabla[]={KB_A,3,2,1,KB_B,6,5,4,KB_C,9,8,7,KB_D,KB_Stop,0,KB_Start};
 
 static QueueHandle_t xFIFOTeclado = NULL;
+static QueueHandle_t xFIFOTimer = NULL;
 static SemaphoreHandle_t xSemaphoreFinishedTime = NULL;
 static SemaphoreHandle_t xSemaphoreCheckStop = NULL;
+static TimerHandle_t xTimerForLed = NULL;
+
+static uint32_t countsForTimer = 0;
 
 static void vTaskTeclado(void *pvParameters);
 static void vTaskCheckStop(void *pvParameters);
-static void IRAM_ATTR ReachedValueCallback(gptimer_handle_t timer, const gptimer_alarm_event_data_t *edata, void *user_data);
+static void vTimerCallback(TimerHandle_t xTimer);
+static uint32_t vTimeCalculate(uint16_t minutes, uint16_t seconds);
 
 void app_main(void)
 {
@@ -82,8 +90,10 @@ void app_main(void)
     bool notInput = true;
 
     xFIFOTeclado = xQueueCreate(10, sizeof(int));
+    xFIFOTimer = xQueueCreate(10, sizeof(int));
     xSemaphoreFinishedTime = xSemaphoreCreateBinary();
     xSemaphoreCheckStop = xSemaphoreCreateBinary();
+    xTimerForLed = xTimerCreate("Timer For Led", pdMS_TO_TICKS(10), pdTRUE, (void *) 0, vTimerCallback);
     xTaskCreate(vTaskTeclado, "TareaTeclado", configMINIMAL_STACK_SIZE+1024, NULL, 1, NULL);
     xTaskCreate(vTaskCheckStop, "TaskCheckStop", configMINIMAL_STACK_SIZE+1024, NULL, 1, NULL);
 
@@ -143,13 +153,29 @@ void app_main(void)
         ESP_LOGI(MainTag, "Seconds: %d", seconds);
 
         //Set the timer counter for the requested time here
-
+        countsForTimer = vTimeCalculate(minutes, seconds);
         //Turn on the led
         gpio_set_level(GPIO_LED, 1);
+        if(xTimerStart(xTimerForLed, 0) != pdPASS)
+            ESP_LOGE(MainTag, "Could not start the timer");
         //Wait for the timer or the External ISR to get the semaphore
         xSemaphoreTake(xSemaphoreFinishedTime, portMAX_DELAY);
         gpio_set_level(GPIO_LED, 0);
     }
+}
+
+static uint32_t vTimeCalculate(uint16_t minutes, uint16_t seconds)
+{
+    const uint16_t periodMS = 10;
+    uint32_t countsNeeded = 0;
+
+    seconds += minutes * 60;
+    countsNeeded = seconds / periodMS;
+    ESP_LOGI(TimeCalcuTAG, "Time in seconds received: %d", seconds);
+    
+    ESP_LOGI(TimeCalcuTAG, "Time in counts setted: %d", (int)countsNeeded);
+
+    return countsNeeded;
 }
 
 signed int explora()
@@ -277,24 +303,20 @@ static void vTaskCheckStop(void *pvParameters)
     }
 }
 
-//@todo
-//ISR Callbacks
-static void IRAM_ATTR ReachedValueCallback(gptimer_handle_t timer, const gptimer_alarm_event_data_t *edata, void *user_data)
+static void vTimerCallback(TimerHandle_t xTimer)
 {
-    BaseType_t high_task_awoken = pdFALSE;
-    QueueHandle_t FIFO = (QueueHandle_t) user_data;
-}
-
-
-//@todo
-static void timerInit(void)
-{
-    timer_config_t config = {
-        .clk_src = TIMER_SRC_CLK_DEFAULT,
-        .divider = APB_CLK_FREQ / TIMER_RESOLUTION_HZ,
-        .counter_dir = TIMER_COUNT_UP,
-        .counter_en = TIMER_PAUSE,
-        .alarm_en = TIMER_ALARM_EN,
-        .auto_reload = true,
+    uint32_t ulCount;
+    configASSERT(xTimer);
+    ulCount = (uint32_t) pvTimerGetTimerID(xTimer);
+    if(ulCount == countsForTimer)
+    {
+        xSemaphoreGive(xSemaphoreFinishedTime);
+        xTimerStop(xTimer, 0);
+        ESP_LOGI(TimerCallbackTAG, "Giving binary semaphore: xSemaphoreFinishedTime");
+    }
+    else
+    {
+        ulCount++;
+        vTimerSetTimerID(xTimer, (void*) ulCount);
     }
 }
