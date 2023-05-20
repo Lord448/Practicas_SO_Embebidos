@@ -49,12 +49,12 @@
 
 #define GPIO_LED GPIO_NUM_2
 
-#define KB_A        0xf0 
-#define KB_B        0xf1 
-#define KB_C        0xf2
-#define KB_D        0xf3
-#define KB_Start    0xf4
-#define KB_Stop     0xf5
+#define KB_A      0xf0 
+#define KB_B      0xf1 
+#define KB_D      0xf2 
+#define KB_Stop   0xf3 
+#define KB_C      0xf4 
+#define KB_Start  0xf5 
 
 #define Intro  KB_Start
 #define Return KB_Stop
@@ -65,14 +65,15 @@ static const char *MainTag = "Main:";
 static const char *TimeCalcuTAG = "Time Calculate: ";
 static const char *TimerCallbackTAG = "TimerCallback: ";
 
-int columnas[]={GPIO_COLUMNA_1,GPIO_COLUMNA_2,GPIO_COLUMNA_3,GPIO_COLUMNA_4};
-int renglones[]={GPIO_RENGLON_1,GPIO_RENGLON_2,GPIO_RENGLON_3,GPIO_RENGLON_4};
-static char tabla[]={KB_A,3,2,1,KB_B,6,5,4,KB_C,9,8,7,KB_D,KB_Stop,0,KB_Start};
+static int columnas[]={GPIO_COLUMNA_1,GPIO_COLUMNA_2,GPIO_COLUMNA_3,GPIO_COLUMNA_4};
+static int renglones[]={GPIO_RENGLON_1,GPIO_RENGLON_2,GPIO_RENGLON_3,GPIO_RENGLON_4};
+static char tabla[]={1,2,3,KB_A, 4, 5, 6, KB_B, 7, 8, 9, KB_C, KB_Start, 0, KB_Stop, KB_D};
 
 static QueueHandle_t xFIFOTeclado = NULL;
 static QueueHandle_t xFIFOTimer = NULL;
 static SemaphoreHandle_t xSemaphoreFinishedTime = NULL;
 static SemaphoreHandle_t xSemaphoreCheckStop = NULL;
+static SemaphoreHandle_t xSemaphoreStartMain = NULL;
 static TimerHandle_t xTimerForLed = NULL;
 
 static uint32_t countsForTimer = 0;
@@ -84,8 +85,8 @@ static uint32_t vTimeCalculate(uint16_t minutes, uint16_t seconds);
 
 void app_main(void)
 {
-    uint16_t tecla, counter = 0;
-    uint16_t minutes, seconds = 0;
+    uint16_t tecla = 0, counter = 0;
+    uint16_t minutes = 0, seconds = 0;
     char timeSelected[5];
     bool notInput = true;
 
@@ -93,16 +94,19 @@ void app_main(void)
     xFIFOTimer = xQueueCreate(10, sizeof(int));
     xSemaphoreFinishedTime = xSemaphoreCreateBinary();
     xSemaphoreCheckStop = xSemaphoreCreateBinary();
+    xSemaphoreStartMain = xSemaphoreCreateBinary();
     xTimerForLed = xTimerCreate("Timer For Led", pdMS_TO_TICKS(10), pdTRUE, (void *) 0, vTimerCallback);
-    xTaskCreate(vTaskTeclado, "TareaTeclado", configMINIMAL_STACK_SIZE+1024, NULL, 1, NULL);
+    xTaskCreate(vTaskTeclado, "TareaTeclado", configMINIMAL_STACK_SIZE+2048, NULL, 1, NULL);
     xTaskCreate(vTaskCheckStop, "TaskCheckStop", configMINIMAL_STACK_SIZE+1024, NULL, 1, NULL);
-
-    printf("Select the time: ");
+    xSemaphoreTake(xSemaphoreStartMain, portMAX_DELAY);
+    printf("Select the time: \n");
     while(1) 
     {
         for(uint16_t i = 0; notInput; i++)
         {
             xQueueReceive(xFIFOTeclado, &tecla, portMAX_DELAY);
+            printf("Data received %x \n", tabla[tecla]);
+            printf("Case es en: %d \n", tecla);
             switch(tecla)
             {
                 case Intro:
@@ -136,7 +140,7 @@ void app_main(void)
                 case KB_D:
                 break;
                 default:
-                    printf("%xh", tabla[tecla]);
+                    printf("%x \n", tabla[tecla]);
                     timeSelected[i] = tabla[tecla];
                 break;
             }
@@ -234,28 +238,31 @@ static void vTaskTeclado(void *pvParameters)
     for(unsigned columna=0;columna<4;columna++)
         gpio_set_level(columnas[columna],1);
     int anterior,actual;
-    printf("Esperando a que se presione una tecla\n");
+    xSemaphoreGive(xSemaphoreStartMain);
+    xQueueReset(xFIFOTeclado);
     for (;;) // una tarea nunca debe retornar o salir
     {
         anterior=-1;
         actual=explora();
         //eliminacion de rebotes
         if(0<=actual) 
-        { //Si hay una tecla presionada
+        { 
+            //printf("Entre al if \n");
+            //Si hay una tecla presionada
             anterior=actual;
-            vTaskDelay( 20 / portTICK_PERIOD_MS);
+            vTaskDelay(20/portTICK_PERIOD_MS);
             actual=explora();
             if(actual<0) //si no hay una tecla presionada reinicia
                 continue; 
             else if (actual!=anterior) //si la tecla es diferente reinicia
                 continue; 
-            vTaskDelay( 20 / portTICK_PERIOD_MS); 
+            vTaskDelay(20/portTICK_PERIOD_MS); 
             actual=explora();
             if(actual<0) //si no hay una tecla presionada reinicia
                 continue; 
             else if (actual!=anterior) //si la tecla es diferente reinicia
                 continue; 
-            vTaskDelay( 20 / portTICK_PERIOD_MS); 
+            vTaskDelay(20/portTICK_PERIOD_MS); 
             actual=explora();
             if(actual<0) //si no hay una tecla presionada reinicia
                 continue; 
@@ -265,7 +272,7 @@ static void vTaskTeclado(void *pvParameters)
             xQueueSendToBack(xFIFOTeclado,&actual,0);
             for(;;) //funcion de autorepeticion
             {
-                vTaskDelay( 250 /portTICK_PERIOD_MS ); // espera durante 250ms
+                vTaskDelay(250/portTICK_PERIOD_MS); // espera durante 250ms
                 actual=explora();
                 if(actual<0) //si no hay una tecla presionada reinicia
                     break; 
@@ -274,7 +281,7 @@ static void vTaskTeclado(void *pvParameters)
                 xQueueSendToBack(xFIFOTeclado,&actual,0); //mete a la cola el codigo de la tecla
             }
         }
-        vTaskDelay( 20 / portTICK_PERIOD_MS ); // espera durante 20 ms
+        vTaskDelay( 20/portTICK_PERIOD_MS ); // espera durante 20 ms
     }
 }
 

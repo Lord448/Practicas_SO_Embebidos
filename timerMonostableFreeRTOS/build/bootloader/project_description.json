@@ -7,7 +7,7 @@
     "bootloader_elf":     "",
     "app_elf":            "bootloader.elf",
     "app_bin":            "bootloader.bin",
-    "git_revision":       "v5.0.1",
+    "git_revision":       "v5.0.1-dirty",
     "target":             "esp32",
     "rev":                "0",
     "min_rev":            "0",

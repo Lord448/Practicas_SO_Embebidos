@@ -7,7 +7,7 @@
     "bootloader_elf":     "/home/lord448/Escritorio/STM32Workspaces/Practicas_SO_Embebidos/timerMonostableFreeRTOS/build/bootloader/bootloader.elf",
     "app_elf":            "timerMonostableFreeRTOS.elf",
     "app_bin":            "timerMonostableFreeRTOS.bin",
-    "git_revision":       "v5.0.1",
+    "git_revision":       "v5.0.1-dirty",
     "target":             "esp32",
     "rev":                "0",
     "min_rev":            "0",
