@@ -1,1 +1,3 @@
 /.metadata/
+ESP32/gateFreeRTOS/build/
+ESP32/timerMonostableFreeRTOS/build/
