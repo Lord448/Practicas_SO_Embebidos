@@ -32,6 +32,8 @@
 #include "esp_log.h"
 #include "sdkconfig.h"
 
+//#define DEBUG
+
 #define N_RENGLON 4
 #define GPIO_RENGLON_1    32 
 #define GPIO_RENGLON_2    33 
@@ -49,25 +51,26 @@
 
 #define GPIO_LED GPIO_NUM_2
 
-#define KB_A      0xf0 
-#define KB_B      0xf1 
-#define KB_D      0xf2 
-#define KB_Stop   0xf3 
-#define KB_C      0xf4 
-#define KB_Start  0xf5 
+#define KB_A      'A' 
+#define KB_B      'B'
+#define KB_D      'D'
+#define KB_Stop   'S'
+#define KB_C      'C'
+#define KB_Start  'T'
 
 #define Intro  KB_Start
 #define Return KB_Stop
 
 #define ToInt(x) x-0x30
 
-static const char *MainTag = "Main:";
-static const char *TimeCalcuTAG = "Time Calculate: ";
-static const char *TimerCallbackTAG = "TimerCallback: ";
+static const char *MainTag = "Main";
+static const char *TimeCalcuTAG = "TimeCalculate";
+static const char *TimerCallbackTAG = "TimerCallback";
+static const char *CheckTag = "CheckStop";
 
 static int columnas[]={GPIO_COLUMNA_1,GPIO_COLUMNA_2,GPIO_COLUMNA_3,GPIO_COLUMNA_4};
 static int renglones[]={GPIO_RENGLON_1,GPIO_RENGLON_2,GPIO_RENGLON_3,GPIO_RENGLON_4};
-static char tabla[]={1,2,3,KB_A, 4, 5, 6, KB_B, 7, 8, 9, KB_C, KB_Start, 0, KB_Stop, KB_D};
+static char tabla[]={'1', '2', '3', KB_A, '4', '5', '6', KB_B, '7', '8', '9', KB_C, KB_Start, '0', KB_Stop, KB_D};
 
 static QueueHandle_t xFIFOTeclado = NULL;
 static QueueHandle_t xFIFOTimer = NULL;
@@ -86,10 +89,12 @@ static uint32_t vTimeCalculate(uint16_t minutes, uint16_t seconds);
 void app_main(void)
 {
     uint16_t tecla = 0, counter = 0;
-    uint16_t minutes = 0, seconds = 0;
-    char timeSelected[5];
+    uint16_t Minutes = 0, Seconds = 0;
+    static char timeSelected[5];
     bool notInput = true;
 
+    gpio_set_direction(GPIO_LED, GPIO_MODE_OUTPUT);
+    gpio_set_intr_type(GPIO_LED, GPIO_INTR_DISABLE);
     xFIFOTeclado = xQueueCreate(10, sizeof(int));
     xFIFOTimer = xQueueCreate(10, sizeof(int));
     xSemaphoreFinishedTime = xSemaphoreCreateBinary();
@@ -99,36 +104,34 @@ void app_main(void)
     xTaskCreate(vTaskTeclado, "TareaTeclado", configMINIMAL_STACK_SIZE+2048, NULL, 1, NULL);
     xTaskCreate(vTaskCheckStop, "TaskCheckStop", configMINIMAL_STACK_SIZE+1024, NULL, 1, NULL);
     xSemaphoreTake(xSemaphoreStartMain, portMAX_DELAY);
-    printf("Select the time: \n");
     while(1) 
     {
-        for(uint16_t i = 0; notInput; i++)
+        ESP_LOGI(MainTag, "Select the time:");
+        for(int16_t i = 0; notInput; i++)
         {
-            xQueueReceive(xFIFOTeclado, &tecla, portMAX_DELAY);
-            printf("Data received %x \n", tabla[tecla]);
-            printf("Case es en: %d \n", tecla);
-            switch(tecla)
+            xQueueReceive(xFIFOTeclado, &tecla, portMAX_DELAY);            
+            switch(tabla[tecla])
             {
-                case Intro:
+                case KB_Start:
                     if(timeSelected[i] == ' ')
                     {
                         timeSelected[i] = '0';
-                        printf("0");
+                        ESP_LOGI(MainTag, "0");
                     }
                     counter++;
                     if(counter == 2)
                     {
                         notInput = false;
-                        timeSelected[i+1] = '/'; //I don't remember which was the string finisher in C
+                        timeSelected[i+1] = '\0'; //Standard string finisher
                     }
                     else 
                     {
-                        printf(",");
+                        ESP_LOGI(MainTag, ",");
                         timeSelected[i] = ',';
                     }
                 break;
-                case Return:
-                    if(i != 0)
+                case KB_Stop:
+                    if(i > 0)
                     {   
                         i--;
                         timeSelected[i] = ' ';
@@ -140,43 +143,54 @@ void app_main(void)
                 case KB_D:
                 break;
                 default:
-                    printf("%x \n", tabla[tecla]);
+                    ESP_LOGI(MainTag, "%c", tabla[tecla]);
+                    
                     timeSelected[i] = tabla[tecla];
                 break;
             }
         }
-        ESP_LOGI(MainTag, "%sh", timeSelected);
+
         //Once the time is input
-        minutes = ToInt(timeSelected[0]);
-        for(uint16_t i = 2; i < sizeof(timeSelected); i++)
+        Minutes = ToInt(timeSelected[0]);
+
+        for(uint16_t i = 2; timeSelected[i] != '\0'; i++)
         {
-            seconds *= 10;
-            seconds += ToInt(timeSelected[i]);
+            Seconds *= 10;
+            Seconds += ToInt(timeSelected[i]);
         }
-        ESP_LOGI(MainTag, "Minutes: %d", minutes);
-        ESP_LOGI(MainTag, "Seconds: %d", seconds);
+        ESP_LOGI(MainTag, "Minutes: %d", Minutes);
+        ESP_LOGI(MainTag, "Seconds: %d", Seconds);
 
         //Set the timer counter for the requested time here
-        countsForTimer = vTimeCalculate(minutes, seconds);
+        countsForTimer = vTimeCalculate(Minutes, Seconds);
         //Turn on the led
         gpio_set_level(GPIO_LED, 1);
         if(xTimerStart(xTimerForLed, 0) != pdPASS)
             ESP_LOGE(MainTag, "Could not start the timer");
+        xSemaphoreGive(xSemaphoreCheckStop);
         //Wait for the timer or the External ISR to get the semaphore
         xSemaphoreTake(xSemaphoreFinishedTime, portMAX_DELAY);
+        for(uint16_t i = 0; i > sizeof(timeSelected); i++)
+            timeSelected[i] = ' ';
+        xQueueReset(xFIFOTeclado);
+        notInput = true;
+        counter = 0;
+        Minutes = 0;
+        Seconds = 0;
         gpio_set_level(GPIO_LED, 0);
     }
 }
 
-static uint32_t vTimeCalculate(uint16_t minutes, uint16_t seconds)
+static uint32_t vTimeCalculate(uint16_t Minutes, uint16_t Seconds)
 {
     const uint16_t periodMS = 10;
     uint32_t countsNeeded = 0;
+    uint32_t Milliseconds;
 
-    seconds += minutes * 60;
-    countsNeeded = seconds / periodMS;
-    ESP_LOGI(TimeCalcuTAG, "Time in seconds received: %d", seconds);
-    
+    Seconds += Minutes * 60;
+    Milliseconds = Seconds * 1000;
+    countsNeeded =  Milliseconds / periodMS;
+    ESP_LOGI(TimeCalcuTAG, "Time in seconds received: %d", Seconds);
     ESP_LOGI(TimeCalcuTAG, "Time in counts setted: %d", (int)countsNeeded);
 
     return countsNeeded;
@@ -294,12 +308,15 @@ static void vTaskCheckStop(void *pvParameters)
     for(;;)
     {
         xSemaphoreTake(xSemaphoreCheckStop, portMAX_DELAY);
+        ESP_LOGI(CheckTag, "Check Task Running");
         while(notFinishedCycle)
         {
             xQueueReceive(xFIFOTeclado, &tecla, portMAX_DELAY);
-            switch (tecla)
+            switch (tabla[tecla])
             {
                 case KB_Stop:
+                    ESP_LOGI(CheckTag, "Time Interrupted");
+                    xTimerStop(xTimerForLed, 0);
                     xSemaphoreGive(xSemaphoreFinishedTime);
                     notFinishedCycle = false;
                 break;
@@ -315,11 +332,13 @@ static void vTimerCallback(TimerHandle_t xTimer)
     uint32_t ulCount;
     configASSERT(xTimer);
     ulCount = (uint32_t) pvTimerGetTimerID(xTimer);
+
+    //ESP_LOGI(TimerCallbackTAG, "Counts: %d", ulCount);
     if(ulCount == countsForTimer)
     {
         xSemaphoreGive(xSemaphoreFinishedTime);
         xTimerStop(xTimer, 0);
-        ESP_LOGI(TimerCallbackTAG, "Giving binary semaphore: xSemaphoreFinishedTime");
+        //ESP_LOGI(TimerCallbackTAG, "Giving binary semaphore: xSemaphoreFinishedTime");
     }
     else
     {
