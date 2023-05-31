@@ -1,4 +1,5 @@
 #include <stdio.h>
+#include <string.h>
 #include <math.h>
 
 int main(int argc, char const *argv[])
@@ -20,7 +21,7 @@ int main(int argc, char const *argv[])
         potenciaN = pow(-1*n, 3);
         sucesion[i] = 1/potenciaN;
         sprintf(cadena, "%f ", sucesion[i]);
-        fprintf(archivo, cadena);
+        fprintf(archivo, "%s", cadena);
         n++;
     } 
     fprintf(archivo,"\n"); 
