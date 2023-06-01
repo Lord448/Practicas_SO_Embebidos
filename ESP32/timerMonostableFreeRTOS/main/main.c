@@ -299,7 +299,6 @@ static void vTaskTeclado(void *pvParameters)
     }
 }
 
-//Check if works
 static void vTaskCheckStop(void *pvParameters)
 {
     bool notFinishedCycle = true;

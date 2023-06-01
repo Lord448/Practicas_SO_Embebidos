@@ -1,3 +1,10 @@
 /.metadata/
 ESP32/gateFreeRTOS/build/
 ESP32/timerMonostableFreeRTOS/build/
+ESP32/tcp_server/build/
+ESP32/tcp_server/.vscode/
+ESP32/tcp_server/.devcontainer/
+ESP32/timerMonostableFreeRTOS/.vscode/
+ESP32/timerMonostableFreeRTOS/.devcontainer/
+ESP32/gateFreeRTOS/.devcontainer/
+ESP32/gateFreeRTOS/.vscode/
