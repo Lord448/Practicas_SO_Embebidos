@@ -1,11 +1,13 @@
-/* BSD Socket API Example
-
-   This example code is in the Public Domain (or CC0 licensed, at your option.)
-
-   Unless required by applicable law or agreed to in writing, this
-   software is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR
-   CONDITIONS OF ANY KIND, either express or implied.
-*/
+/**
+ * @file tcp_server.c
+ * @author Pedro Rojo (pedroeroca@outlook.com)
+ * @brief 
+ * @version 0.1
+ * @date 2023-06-01
+ * 
+ * @copyright Copyright (c) 2023
+ * 
+ */
 #include <stdio.h>
 #include <stdint.h>
 #include <stdlib.h>
@@ -281,7 +283,6 @@ static void vTaskTimer(void *pvParameters)
         }
 
         ESP_LOGI(TimerTAG, "Buffer received %s", BufferRX);
-        //Minutes = ToInt(BufferRX[0]);
         for(uint16_t i = 0; BufferRX[i] != '\0'; i++) {
             if(i == 0)
                 Minutes = ToInt(BufferRX[i]);
@@ -290,7 +291,6 @@ static void vTaskTimer(void *pvParameters)
             else if(BufferRX[i] >= 0x30 && BufferRX[i] <= 0x39) {
                 Seconds *= 10;
                 Seconds += ToInt(BufferRX[i]);
-                //ESP_LOGI(TimerTAG, "Seconds going: %d, Toint: %d", Seconds, ToInt(BufferRX[i]));
             }
         }
         for(uint16_t i = 0; i < sizeof(BufferRX); i++)
@@ -396,14 +396,11 @@ static void vTimerCallback(TimerHandle_t xTimer)
     const uint32_t ZeroCount = 0;
     configASSERT(xTimer);
     ulCount = (uint32_t) pvTimerGetTimerID(xTimer);
-
-    //ESP_LOGI(TimerCallbackTAG, "Counts: %d", ulCount);
     if(ulCount == countsForTimer)
     {
         xSemaphoreGive(xSemaphoreFinishedTime);
         xTimerStop(xTimer, 0);
         vTimerSetTimerID(xTimer, (void*) ZeroCount);
-        //ESP_LOGI(TimerCallbackTAG, "Giving binary semaphore: xSemaphoreFinishedTime");
     }
     else
     {
