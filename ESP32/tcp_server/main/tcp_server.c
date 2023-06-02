@@ -41,49 +41,73 @@
 
 static const char *TAG = "TCP";
 static const char *TimerTAG = "TimerTask";
+static const char *CheckTAG = "CheckStop";
 static const char *TimeCalcuTAG = "TimeCalculate";
 
 static QueueHandle_t xFIFODataRX = NULL;
-static QueueHandle_t xFIFOTimer = NULL;
+static QueueHandle_t xFIFOCheckStop = NULL;
 static SemaphoreHandle_t xSemaphoreFinishedTime = NULL;
 static SemaphoreHandle_t xSemaphoreCheckStop = NULL;
 static SemaphoreHandle_t xSemaphoreStartTimerTask = NULL;
+static SemaphoreHandle_t xSemaphoreKillTasks = NULL;
 static TimerHandle_t xTimerForLed = NULL;
 static TaskHandle_t xTaskHandlerTimer = NULL;
 static TaskHandle_t xTaskHandlerCheck = NULL;
 
 static uint32_t countsForTimer = 0;
+static bool notStopped = true;
 
 static void vTaskTimer(void *pvParameters);
 static void vTaskCheckStop(void *pvParameters);
-static void vTimerCallback(TimerHandle_t xTimer);
 static void vSendToSocket(int sock, const char *string);
 static uint32_t uTimeCalculate(uint16_t minutes, uint16_t seconds);
+static void strclean(char *string);
+static void vTimerCallback(TimerHandle_t xTimer);
 
 
 static void do_retransmit(const int sock)
 {
     int len;
+    bool isData = true;
     char rx_buffer[128];
 
     do {
         len = recv(sock, rx_buffer, sizeof(rx_buffer) - 1, 0);
         if (len < 0) {
             ESP_LOGE(TAG, "Error occurred during receiving: errno %d", errno);
-        } else if (len == 0) {
+        } 
+        else if (len == 0) {
             ESP_LOGW(TAG, "Connection closed");
+            xSemaphoreTake(xSemaphoreKillTasks, portMAX_DELAY);
+            xQueueReset(xFIFOCheckStop);
+            xQueueReset(xFIFODataRX);
             vTaskDelete(xTaskHandlerCheck);
             vTaskDelete(xTaskHandlerTimer);
             ESP_LOGW(TAG, "Deleting tasks");
-        } else {
-            
+        } 
+        else {
             rx_buffer[len] = 0; // Null-terminate whatever is received and treat it like a string
-            //xSemaphoreGive(xSemaphoreStartTimerTask);
             if(len <= 5) {
-                for(uint32_t i = 0; i < len; i++) {
-                    xQueueSendToBack(xFIFODataRX, &rx_buffer[i], 0);
+                for(uint16_t i = 0; i < strlen(rx_buffer); i++) {
+                    if(rx_buffer[i] == '.'){
+                        xSemaphoreGive(xSemaphoreStartTimerTask);
+                        xQueueReset(xFIFODataRX);
+                        isData = true;
+                        break;
+                    }
                 }
-                xSemaphoreGive(xSemaphoreStartTimerTask);
+                if(isData) {
+                    for(uint32_t i = 0; i <= len; i++) {
+                        xQueueSendToBack(xFIFODataRX, &rx_buffer[i], 0);
+                        rx_buffer[i] = '\0';
+                    }
+                    isData = false;
+                }
+                else {
+                    for(uint32_t i = 0; i <= len; i++) {
+                        xQueueSendToBack(xFIFOCheckStop, &rx_buffer[i], 0);
+                    }
+                }
             }
             else {
                 ESP_LOGW(TAG, "More char than expected");
@@ -221,11 +245,12 @@ void app_main(void)
     gpio_set_direction(GPIO_LED, GPIO_MODE_OUTPUT);
     gpio_set_intr_type(GPIO_LED, GPIO_INTR_DISABLE);
 
-    xFIFOTimer = xQueueCreate(10, sizeof(uint32_t));
     xFIFODataRX = xQueueCreate(10, sizeof(char));
+    xFIFOCheckStop = xQueueCreate(10, sizeof(char));
     xSemaphoreFinishedTime = xSemaphoreCreateBinary();
     xSemaphoreCheckStop = xSemaphoreCreateBinary();
     xSemaphoreStartTimerTask = xSemaphoreCreateBinary();
+    xSemaphoreKillTasks = xSemaphoreCreateBinary();
     xTimerForLed = xTimerCreate("Timer for LED", pdMS_TO_TICKS(10), pdTRUE, (void *) 0, vTimerCallback);
 
 #ifdef CONFIG_EXAMPLE_IPV4
@@ -239,30 +264,37 @@ void app_main(void)
 
 static void vTaskTimer(void *pvParameters)
 {
-    char Response[] = "Timer Reached";
-    char BufferRX[5];
+    const char Response[] = "Time Reached \n";
+    const char Finisher = 'f';
+    static char BufferRX[5];
     uint16_t Minutes = 0, Seconds = 0;
     int sock = (int) pvParameters;
     ESP_LOGI(TimerTAG, "Timer Task Created");
     for(;;)
     {
         xSemaphoreTake(xSemaphoreStartTimerTask, portMAX_DELAY);
-        for(uint16_t i = 0; i < sizeof(BufferRX); i++) {
-            xQueueReceive(xFIFODataRX, BufferRX, 50);
+        notStopped = true;
+        xSemaphoreTake(xSemaphoreKillTasks, 10);
+
+        for(uint16_t i = 0; uxQueueMessagesWaiting(xFIFODataRX) > 0; i++) {
+            xQueueReceive(xFIFODataRX, &BufferRX[i], portMAX_DELAY);
         }
+
         ESP_LOGI(TimerTAG, "Buffer received %s", BufferRX);
-        xQueueReset(xFIFODataRX);
-        
-        for(uint16_t i = 0; i < strlen(BufferRX); i++) {
+        //Minutes = ToInt(BufferRX[0]);
+        for(uint16_t i = 0; BufferRX[i] != '\0'; i++) {
             if(i == 0)
                 Minutes = ToInt(BufferRX[i]);
             else if(BufferRX[i] == '.')
                 continue;
-            else {
+            else if(BufferRX[i] >= 0x30 && BufferRX[i] <= 0x39) {
                 Seconds *= 10;
                 Seconds += ToInt(BufferRX[i]);
+                //ESP_LOGI(TimerTAG, "Seconds going: %d, Toint: %d", Seconds, ToInt(BufferRX[i]));
             }
         }
+        for(uint16_t i = 0; i < sizeof(BufferRX); i++)
+            BufferRX[i] = '\0';
         ESP_LOGI(TimerTAG, "Minutes: %d", Minutes);
         ESP_LOGI(TimerTAG, "Seconds: %d", Seconds);
 
@@ -273,65 +305,55 @@ static void vTaskTimer(void *pvParameters)
         }
         xSemaphoreGive(xSemaphoreCheckStop);
         xSemaphoreTake(xSemaphoreFinishedTime, portMAX_DELAY);
-        xQueueReset(xFIFODataRX);
         Minutes = 0;
         Seconds = 0;
         gpio_set_level(GPIO_LED, 0);
-        /*
-        int to_write = strlen();
-        while (to_write > 0) {
-            int written = send(sock, Response + (strlen(Response) - to_write), to_write, 0);
-            if (written < 0) {
-                ESP_LOGE(TAG, "Error occurred during sending: errno %d", errno);
-            }
-            to_write -= written;
+        xQueueSendToBack(xFIFOCheckStop, &Finisher, 0);
+        if(notStopped) {
+            ESP_LOGI(TimerTAG, "Time reached");
+            vSendToSocket(sock, Response);
         }
-        */
+        xSemaphoreGive(xSemaphoreKillTasks);
     }
 }
 
 static void vTaskCheckStop(void *pvParameters)
 {
-    const char Response[] = "Time Stop";
-    char DataRX[4];
+    const char Response[] = "Time Stop \n";
+    char DataRX[5];
     int sock = (int)pvParameters;
-    ESP_LOGI(TimerTAG, "Check Task Created");
+    ESP_LOGI(CheckTAG, "Check Task Created");
     for(;;)
     {
         xSemaphoreTake(xSemaphoreCheckStop, portMAX_DELAY);
-        xQueueReceive(xFIFODataRX, DataRX, portMAX_DELAY);
+        xSemaphoreTake(xSemaphoreKillTasks, 10);
 
-        for(uint16_t i = 0; i < strlen(DataRX); i++)
-            DataRX[i] = tolower(DataRX[i]);
+        xQueueReceive(xFIFOCheckStop, &DataRX[0], portMAX_DELAY);
+        for(uint16_t i = 1; i < sizeof(DataRX); i++)
+            xQueueReceive(xFIFOCheckStop, &DataRX[i], 50);
+        for(uint16_t i = 4; i < sizeof(DataRX); i++)
+            DataRX[i] = '\0';
 
-        if(strcmp(DataRX, "st") || strcmp(DataRX, "stop") || strcmp(DataRX, "s")) {
+
+        ESP_LOGI(CheckTAG, "Data: %s", DataRX);
+        if(strcmp(DataRX, "st") == 0 || strcmp(DataRX, "stop") == 0 || strcmp(DataRX, "s") == 0) {
+            notStopped = false;
             xSemaphoreGive(xSemaphoreFinishedTime);
-            ESP_LOGI(TimerTAG, "Time stop!");
+            ESP_LOGI(CheckTAG, "Time stop!");
+            xQueueReset(xFIFOCheckStop);
             vSendToSocket(sock, Response);
+            strclean(DataRX);
+        }
+        else if(DataRX[0] == 'f') {
+            xSemaphoreGive(xSemaphoreKillTasks);
+            xQueueReset(xFIFOCheckStop);
+            strclean(DataRX);
+            continue;
         }
         else {
-            ESP_LOGI(TimerTAG, "Data not handled");
+            ESP_LOGI(CheckTAG, "Data not handled");
         }
-    }
-}
-
-static void vTimerCallback(TimerHandle_t xTimer)
-{
-    uint32_t ulCount;
-    configASSERT(xTimer);
-    ulCount = (uint32_t) pvTimerGetTimerID(xTimer);
-
-    //ESP_LOGI(TimerCallbackTAG, "Counts: %d", ulCount);
-    if(ulCount == countsForTimer)
-    {
-        xSemaphoreGive(xSemaphoreFinishedTime);
-        xTimerStop(xTimer, 0);
-        //ESP_LOGI(TimerCallbackTAG, "Giving binary semaphore: xSemaphoreFinishedTime");
-    }
-    else
-    {
-        ulCount++;
-        vTimerSetTimerID(xTimer, (void*) ulCount);
+        xSemaphoreGive(xSemaphoreKillTasks);
     }
 }
 
@@ -359,5 +381,33 @@ static void vSendToSocket(int sock, const char *string)
             ESP_LOGE(TimerTAG, "Error occurred during sending: errno %d", errno);
         }
         to_write -= written;
+    }
+}
+
+static void strclean(char *string)
+{
+    for(uint16_t i = 0; i >= strlen(string); i++)
+        string[i] = '\0';
+}
+
+static void vTimerCallback(TimerHandle_t xTimer)
+{
+    uint32_t ulCount;
+    const uint32_t ZeroCount = 0;
+    configASSERT(xTimer);
+    ulCount = (uint32_t) pvTimerGetTimerID(xTimer);
+
+    //ESP_LOGI(TimerCallbackTAG, "Counts: %d", ulCount);
+    if(ulCount == countsForTimer)
+    {
+        xSemaphoreGive(xSemaphoreFinishedTime);
+        xTimerStop(xTimer, 0);
+        vTimerSetTimerID(xTimer, (void*) ZeroCount);
+        //ESP_LOGI(TimerCallbackTAG, "Giving binary semaphore: xSemaphoreFinishedTime");
+    }
+    else
+    {
+        ulCount++;
+        vTimerSetTimerID(xTimer, (void*) ulCount);
     }
 }
